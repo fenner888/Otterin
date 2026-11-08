@@ -3,8 +3,8 @@
 // electron binary — crypto.node, transport.node, bridge-client helpers,
 // scheduler, ipc payload schemas + error mapping, and the jsqr decode
 // helpers. Run:
-//   npx esbuild scripts/smoke.mts --bundle --platform=node --format=cjs \
-//     --external:electron --outfile=/tmp/otterin-smoke.cjs && node /tmp/otterin-smoke.cjs
+//   npx esbuild scripts/smoke.mts --bundle --platform=node --format=esm \
+//     --external:electron --outfile=/tmp/otterin-smoke.mjs && node /tmp/otterin-smoke.mjs
 //
 // safeStorage/capture modules are imported for symbols only — their
 // electron calls are lazy-required, so importing them is safe here.
@@ -227,16 +227,18 @@ registerBridgeTransport(nodeBridgeTransport);
 }
 
 // ---------------------------------------------------------------------------
-// client-core protocol seam
+// client-core protocol seam — registered by initializeClientCorePorts above.
 {
   try {
-    requireClientCoreProtocol();
-    check('protocol seam reports unwired', false);
-  } catch (error) {
+    const proto = requireClientCoreProtocol();
     check(
-      'protocol seam reports unwired',
-      error instanceof Error && 'code' in error && error.code === 'client_core_unavailable',
+      'protocol seam wired',
+      typeof proto.pairFromQrPayload === 'function' &&
+        typeof proto.openBridge === 'function' &&
+        typeof proto.disconnectComputer === 'function',
     );
+  } catch {
+    check('protocol seam wired', false);
   }
 }
 

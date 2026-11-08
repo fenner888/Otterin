@@ -1,45 +1,26 @@
 // The ONE integration seam between the Electron main process and
 // client-core (PLAN §2).
 //
-// What is real here today:
+// What happens here:
 //   - initializeClientCorePorts() registers the three macOS port adapters
 //     (crypto.node / transport.node / secrets.mac) against
-//     client-core/src/ports.ts — that file exists and this wiring is final.
+//     client-core/src/ports.ts and then registers the adapted protocol —
+//     client-core/src/{computerPairing,computerBridge,pairedComputers}.ts
+//     are the RN-free protocol modules, so registration is unconditional.
 //   - protocolFromClientCore() adapts the client-core protocol module shape
 //     into the ipc-facing ClientCoreProtocol, including the method-table
 //     additions PLAN §3.4 needs (platform + device.revoke) and the Mac
 //     pairing defaults (deviceName "Otterin (Mac)").
 //
-// What is a merge seam:
-//   - client-core/src/{computerPairing,computerBridge,pairedComputers}.ts
-//     are being produced by a sibling slice with names identical to
-//     src/auth/* . Until they exist this file cannot import them, so
-//     `protocol` stays unregistered and ipc returns
-//     { ok:false, code:'client_core_unavailable' }.
-//
-// ==== INTEGRATION ====
-// Once the copied modules exist, add at the top of this file:
-//   import { pairComputerFromQrPayload } from '../../../client-core/src/computerPairing';
-//   import {
-//     disconnectComputer,
-//     getComputerBridgePlatform,
-//     getComputerBridgePresentation,
-//     openComputerBridge,
-//     removeComputerFromThisIPhone,
-//   } from '../../../client-core/src/computerBridge';
-//   import { loadPairedComputerSummaries } from '../../../client-core/src/pairedComputers';
-// then inside initializeClientCorePorts() (or app boot) call:
-//   registerClientCoreProtocol(protocolFromClientCore({
-//     pairComputerFromQrPayload,
-//     openComputerBridge,
-//     disconnectComputer,
-//     removeComputerFromThisIPhone,
-//     loadPairedComputerSummaries,
-//     getComputerBridgePresentation,
-//     getComputerBridgePlatform,
-//   }));
-// and delete this comment.
-
+import { pairComputerFromQrPayload } from '../../../client-core/src/computerPairing';
+import {
+  disconnectComputer,
+  getComputerBridgePlatform,
+  getComputerBridgePresentation,
+  openComputerBridge,
+  removeComputerFromThisDevice,
+} from '../../../client-core/src/computerBridge';
+import { loadPairedComputerSummaries } from '../../../client-core/src/pairedComputers';
 import {
   registerBridgeTransport,
   registerDeviceCrypto,
@@ -154,4 +135,15 @@ export function initializeClientCorePorts(): void {
   registerDeviceCrypto(nodeDeviceCrypto);
   registerBridgeTransport(nodeBridgeTransport);
   registerSecretStore(macSecretBlobStore);
+  registerClientCoreProtocol(
+    protocolFromClientCore({
+      pairComputerFromQrPayload,
+      openComputerBridge,
+      disconnectComputer,
+      removeComputerFromThisIPhone: removeComputerFromThisDevice,
+      loadPairedComputerSummaries,
+      getComputerBridgePresentation,
+      getComputerBridgePlatform,
+    }),
+  );
 }
