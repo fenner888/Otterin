@@ -10,16 +10,14 @@ asar: true
 mac:
   category: public.app-category.developer-tools
   target:
-    - dmg
-    - zip
-  arch: arm64
+    - target: dmg
+      arch: [arm64]
+    - target: zip
+      arch: [arm64]
   hardenedRuntime: true
+  artifactName: Otterin-${version}-macos-${arch}.${ext}
   # Signing: electron-builder picks up the Developer ID Application cert
   # from the login keychain (or CSC_NAME). Dev/unsigned builds use
   # `npm run pack` (--dir) which never signs.
-dmg:
-  artifactName: Otterin-${version}-macos-${arch}.${ext}
-zip:
-  artifactName: Otterin-${version}-macos-${arch}.${ext}
 afterPack: scripts/afterPack.mjs
 afterSign: scripts/notarize.mjs
