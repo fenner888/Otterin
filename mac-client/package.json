@@ -11,15 +11,19 @@
     "dev": "npm run build:main && npm run build:renderer && electron . --dev",
     "build": "npm run build:main && npm run build:renderer",
     "build:main": "esbuild src/main/index.ts src/preload/index.ts --bundle --platform=node --format=cjs --target=node20 --external:electron --outdir=dist --out-extension:.js=.cjs",
-    "build:renderer": "vite build src/renderer",
+    "build:renderer": "vite build",
+    "dev:renderer": "vite",
     "typecheck": "tsc --noEmit && tsc -p src/renderer/tsconfig.json --noEmit",
     "lint": "eslint src --max-warnings 0",
     "pack": "npm run build && electron-builder --dir",
     "pack:dmg": "npm run build && electron-builder --mac dmg zip --arm64"
   },
   "dependencies": {
+    "clsx": "^2.1.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-markdown": "^9.0.3",
+    "remark-gfm": "^4.0.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {

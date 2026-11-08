@@ -1,3 +1,144 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Otterin mac client — dark-first. Palette/radii/spacing come from
+   tailwind.config.ts, which maps src/theme/tokens.ts into utilities. */
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-surface0 text-textHi font-sans antialiased;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+    'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  font-size: 14px;
+  overscroll-behavior: none;
+  user-select: none;
+}
+
+/* Long-form content stays selectable; chrome does not. */
+.selectable,
+.selectable * {
+  user-select: text;
+}
+
+/* Titlebar drag regions (hiddenInset): the sidebar header strip and the
+   transcript top inset drag the window; every interactive element inside
+   must opt back out. */
+.titlebar-drag {
+  -webkit-app-region: drag;
+}
+.titlebar-no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* Quiet scrollbars */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  @apply rounded-dot border-[3px] border-transparent bg-tintPrimary bg-clip-content;
+}
+
+@keyframes otterin-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+.animate-otterin-pulse {
+  animation: otterin-pulse 1.2s ease-in-out infinite;
+}
+
+/* Devin reply markdown (agent output rendered sanitized — no raw HTML). */
+.otterin-md {
+  @apply text-[14px] leading-6 text-textHi selectable break-words;
+}
+.otterin-md > *:first-child {
+  margin-top: 0;
+}
+.otterin-md > *:last-child {
+  margin-bottom: 0;
+}
+.otterin-md p {
+  @apply my-2.5;
+}
+.otterin-md h1,
+.otterin-md h2,
+.otterin-md h3,
+.otterin-md h4,
+.otterin-md h5,
+.otterin-md h6 {
+  @apply mb-2 mt-4 font-semibold text-textHiStrong;
+}
+.otterin-md h1 {
+  @apply text-[17px];
+}
+.otterin-md h2 {
+  @apply text-base;
+}
+.otterin-md h3,
+.otterin-md h4 {
+  @apply text-[14px];
+}
+.otterin-md ul {
+  @apply my-2.5 list-disc pl-5;
+}
+.otterin-md ol {
+  @apply my-2.5 list-decimal pl-5;
+}
+.otterin-md li {
+  @apply my-1;
+}
+.otterin-md li > ul,
+.otterin-md li > ol {
+  @apply my-1;
+}
+.otterin-md code {
+  @apply rounded-inlineCode bg-tintSecondary px-inlineCodeX py-inlineCodeY font-mono text-[12px] text-textHi;
+}
+.otterin-md pre {
+  @apply my-2.5 overflow-x-auto rounded-card border border-borderSubtle bg-surface1 px-3 py-2.5;
+}
+.otterin-md pre code {
+  @apply bg-transparent p-0 text-[12px] leading-5 text-textMid;
+  white-space: pre;
+}
+.otterin-md a {
+  @apply text-link underline decoration-link/40 underline-offset-2;
+}
+.otterin-md blockquote {
+  @apply my-2.5 border-l-2 border-borderSubtle pl-3 text-textMid;
+}
+.otterin-md hr {
+  @apply my-4 border-borderSubtle;
+}
+.otterin-md table {
+  @apply my-2.5 w-full border-collapse text-[13px];
+}
+.otterin-md th {
+  @apply border-b border-border px-2 py-1.5 text-left font-medium text-textMid;
+}
+.otterin-md td {
+  @apply border-b border-borderSubtle px-2 py-1.5;
+}
+.otterin-md img {
+  @apply my-2 max-w-full rounded-card;
+}
+.otterin-md strong {
+  @apply font-semibold text-textHiStrong;
+}
+.otterin-md em {
+  @apply italic;
+}
