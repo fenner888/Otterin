@@ -1,0 +1,39 @@
+{
+  "name": "otterin-mac",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Otterin for macOS — desktop client for Otterin Connector",
+  "main": "dist/main/index.cjs",
+  "productName": "Otterin",
+  "author": "tourproapp",
+  "license": "MIT",
+  "scripts": {
+    "dev": "npm run build:main && npm run build:renderer && electron . --dev",
+    "build": "npm run build:main && npm run build:renderer",
+    "build:main": "esbuild src/main/index.ts src/preload/index.ts --bundle --platform=node --format=cjs --target=node20 --external:electron --outdir=dist --out-extension:.js=.cjs",
+    "build:renderer": "vite build src/renderer",
+    "typecheck": "tsc --noEmit && tsc -p src/renderer/tsconfig.json --noEmit",
+    "lint": "eslint src --max-warnings 0",
+    "pack": "npm run build && electron-builder --dir",
+    "pack:dmg": "npm run build && electron-builder --mac dmg zip --arm64"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "electron": "^33.2.0",
+    "electron-builder": "^24.13.3",
+    "esbuild": "^0.24.0",
+    "jsqr": "^1.4.0",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15",
+    "typescript": "~5.6.3",
+    "vite": "^5.4.11"
+  }
+}

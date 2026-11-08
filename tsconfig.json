@@ -48,6 +48,8 @@
     "node_modules",
     "audit-tools",
     "artifacts",
-    "dist"
+    "dist",
+    "client-core",
+    "mac-client"
   ]
 }

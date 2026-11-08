@@ -1,0 +1,24 @@
+appId: com.tourproapp.otterin
+productName: Otterin
+directories:
+  output: release
+  buildResources: build
+files:
+  - dist/**
+  - package.json
+asar: true
+mac:
+  category: public.app-category.developer-tools
+  target:
+    - dmg
+    - zip
+  arch: arm64
+  hardenedRuntime: true
+  # Signing: electron-builder picks up the Developer ID Application cert
+  # from the login keychain (or CSC_NAME). Dev/unsigned builds use
+  # `npm run pack` (--dir) which never signs.
+dmg:
+  artifactName: Otterin-${version}-macos-${arch}.${ext}
+zip:
+  artifactName: Otterin-${version}-macos-${arch}.${ext}
+afterSign: scripts/notarize.mjs
