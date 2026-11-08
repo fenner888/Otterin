@@ -156,6 +156,10 @@ describe('Desktop Bridge pairing core', () => {
         pairingId: offer.pairingId,
         deviceId: DEVICE_ID,
         deviceName: 'Frank’s iPhone',
+        deviceKeyFingerprint: createHash('sha256')
+          .update(Buffer.from(devicePublicKeySpki, 'base64url'))
+          .digest('base64url')
+          .slice(0, 12),
         expiresAt: NOW + 1_000 + 300_000,
       },
     ]);

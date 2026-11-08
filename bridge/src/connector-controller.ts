@@ -148,6 +148,7 @@ export class ConnectorController {
             type: 'pairing_review',
             pairingId: review.pairingId,
             deviceName: safeDisplayText(review.deviceName),
+            deviceKeyFingerprint: review.deviceKeyFingerprint,
             expiresAt: review.expiresAt,
           });
         }

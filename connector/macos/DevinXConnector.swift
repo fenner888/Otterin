@@ -8,7 +8,7 @@ import SwiftUI
 private let ipcVersion = 1
 private let keychainService = "com.devinx.desktop-bridge"
 private let keychainAccount = "bridge-state-v1"
-private let connectorReleaseApi = URL(string: "https://api.github.com/repos/fenner888/Devinx/releases/latest")!
+private let connectorReleaseApi = URL(string: "https://api.github.com/repos/tourproapp/Otterin/releases/latest")!
 
 private struct ConnectorRelease: Decodable, Equatable, Sendable {
     let tagName: String
@@ -41,6 +41,7 @@ private struct ConnectorEvent: Decodable {
     let cliDetected: Bool?
     let pairingId: String?
     let deviceName: String?
+    let deviceKeyFingerprint: String?
     let access: String?
     let code: String?
     let route: String?
@@ -61,8 +62,8 @@ private enum ConnectorStatus: Equatable {
         switch self {
         case .starting: return "Starting securely…"
         case .ready: return "Ready to connect"
-        case .awaitingApproval: return "Review this iPhone"
-        case .paired: return "iPhone connected"
+        case .awaitingApproval: return "Review this device"
+        case .paired: return "Device connected"
         case .uninstalling: return "Removing securely…"
         case .failed: return "Needs attention"
         }
@@ -89,6 +90,7 @@ private final class ConnectorModel: ObservableObject {
     @Published var cliDetected = false
     @Published var sessionDiscoveryEnabled = false
     @Published var pendingDeviceName: String?
+    @Published var pendingDeviceKeyFingerprint: String?
     @Published var pendingPairingId: String?
     @Published var allowSessionContent = false
     @Published var launchAtLogin = false
@@ -198,8 +200,7 @@ private final class ConnectorModel: ObservableObject {
     nonisolated private static func isOfficialReleaseUrl(_ value: String) -> Bool {
         guard let components = URLComponents(string: value) else { return false }
         let officialReleasePathPrefixes = [
-            "/fenner888/Devinx/releases/",
-            "/fenner888/Otterin/releases/",
+            "/tourproapp/Otterin/releases/",
         ]
         return components.scheme == "https" &&
             components.host == "github.com" &&
@@ -252,6 +253,7 @@ private final class ConnectorModel: ObservableObject {
     func regenerateCode() {
         clearPairingCode()
         pendingDeviceName = nil
+        pendingDeviceKeyFingerprint = nil
         pendingPairingId = nil
         allowSessionContent = false
         send(["version": ipcVersion, "type": "regenerate"])
@@ -271,6 +273,7 @@ private final class ConnectorModel: ObservableObject {
         guard let pairingId = pendingPairingId else { return }
         send(["version": ipcVersion, "type": "deny", "pairingId": pairingId])
         pendingDeviceName = nil
+        pendingDeviceKeyFingerprint = nil
         pendingPairingId = nil
         allowSessionContent = false
     }
@@ -411,6 +414,7 @@ private final class ConnectorModel: ObservableObject {
         clearPairingCode()
         pendingPairingId = nil
         pendingDeviceName = nil
+        pendingDeviceKeyFingerprint = nil
         if uninstalling {
             if !protectedStateRemovalConfirmed {
                 removeProtectedStateWithHelper()
@@ -439,6 +443,7 @@ private final class ConnectorModel: ObservableObject {
             // The controller emits a fresh offer only after pending review ends.
             pendingPairingId = nil
             pendingDeviceName = nil
+            pendingDeviceKeyFingerprint = nil
             allowSessionContent = false
             let expiry = Date(timeIntervalSince1970: expiresAt / 1_000)
             qrExpiresAt = expiry
@@ -457,6 +462,7 @@ private final class ConnectorModel: ObservableObject {
         case "pairing_review":
             pendingPairingId = event.pairingId
             pendingDeviceName = event.deviceName
+            pendingDeviceKeyFingerprint = event.deviceKeyFingerprint
             status = .awaitingApproval
         case "pairing_diagnostic":
             guard let route = event.route,
@@ -469,6 +475,7 @@ private final class ConnectorModel: ObservableObject {
         case "pairing_complete":
             pendingPairingId = nil
             pendingDeviceName = nil
+            pendingDeviceKeyFingerprint = nil
             allowSessionContent = false
             status = .paired
             regenerateCode()
@@ -485,6 +492,7 @@ private final class ConnectorModel: ObservableObject {
                 clearPairingCode()
                 pendingPairingId = nil
                 pendingDeviceName = nil
+                pendingDeviceKeyFingerprint = nil
                 allowSessionContent = false
                 return
             }
@@ -672,7 +680,13 @@ private struct ConnectorView: View {
                         VStack(alignment: .leading, spacing: 14) {
                             Label(deviceName, systemImage: "iphone")
                                 .font(.headline)
-                            Text("Approve only if this is the iPhone in your hand.")
+                            if let fingerprint = model.pendingDeviceKeyFingerprint {
+                                Text("Key fingerprint: \(fingerprint)")
+                                    .font(.caption.monospaced())
+                                    .foregroundStyle(.secondary)
+                                    .textSelection(.enabled)
+                            }
+                            Text("Approve only if this is the device you are pairing and the key fingerprint matches.")
                                 .font(.callout)
                                 .foregroundStyle(.secondary)
                             Toggle("Allow session titles and message history", isOn: $model.allowSessionContent)
@@ -682,7 +696,7 @@ private struct ConnectorView: View {
                             HStack {
                                 Button("Deny", role: .destructive) { model.deny() }
                                 Spacer()
-                                Button("Approve iPhone") { model.approve() }
+                                Button("Approve device") { model.approve() }
                                     .buttonStyle(.borderedProminent)
                             }
                         }
@@ -695,8 +709,8 @@ private struct ConnectorView: View {
                             .resizable()
                             .scaledToFit()
                             .frame(width: 360, height: 360)
-                            .accessibilityLabel("Otterin iPhone pairing QR code")
-                        Text("On iPhone: Otterin → Your computer → Pair a computer → Scan pairing code")
+                            .accessibilityLabel("Otterin pairing QR code")
+                        Text("In Otterin: Your computer → Pair a computer → Scan pairing code")
                             .font(.callout)
                             .multilineTextAlignment(.center)
                         Text("The code refreshes automatically and is valid only for this local device.")
@@ -719,21 +733,21 @@ private struct ConnectorView: View {
                     let keep = activeDevices.first
                     let older = Array(activeDevices.dropFirst())
 
-                    GroupBox("Paired iPhones") {
+                    GroupBox("Paired devices") {
                         VStack(spacing: 0) {
                             if !older.isEmpty, let keep = keep {
                                 VStack(alignment: .leading, spacing: 10) {
                                     HStack(alignment: .top, spacing: 8) {
                                         Image(systemName: "exclamationmark.triangle.fill")
                                             .foregroundStyle(.orange)
-                                        Text("\(older.count) older iPhone\(older.count == 1 ? "" : "s") can still connect to this Mac. Revoke any you no longer use.")
+                                        Text("\(older.count) older device\(older.count == 1 ? "" : "s") can still connect to this Mac. Revoke any you no longer use.")
                                             .foregroundStyle(.secondary)
                                     }
-                                    Button("Revoke older iPhones…", role: .destructive) {
+                                    Button("Revoke older devices…", role: .destructive) {
                                         showingOlderDevicesConfirmation = true
                                     }
                                     .confirmationDialog(
-                                        "Revoke \(older.count) older iPhone\(older.count == 1 ? "" : "s")?",
+                                        "Revoke \(older.count) older device\(older.count == 1 ? "" : "s")?",
                                         isPresented: $showingOlderDevicesConfirmation,
                                         titleVisibility: .visible
                                     ) {
@@ -742,7 +756,7 @@ private struct ConnectorView: View {
                                         }
                                         Button("Cancel", role: .cancel) {}
                                     } message: {
-                                        Text("Only \(keep.deviceName), paired \(Date(timeIntervalSince1970: keep.pairedAt / 1_000).formatted(date: .abbreviated, time: .shortened)), stays connected. Revoked iPhones must pair again.")
+                                        Text("Only \(keep.deviceName), paired \(Date(timeIntervalSince1970: keep.pairedAt / 1_000).formatted(date: .abbreviated, time: .shortened)), stays connected. Revoked devices must pair again.")
                                     }
                                 }
                                 .padding(12)
@@ -782,7 +796,7 @@ private struct ConnectorView: View {
                                     ))
                                     .disabled(device.status != "active")
                                     if device.status == "active" {
-                                        Button("Revoke iPhone", role: .destructive) {
+                                        Button("Revoke device", role: .destructive) {
                                             model.revokeDevice(device)
                                         }
                                     }
@@ -833,7 +847,7 @@ private struct ConnectorView: View {
                     Button("Uninstall", role: .destructive) { model.uninstall() }
                 } message: {
                     Text(
-                        "This removes the app, disables launch at login, and deletes this Mac’s Connector identity and paired-iPhone permissions. Pairing must be completed again after reinstalling."
+                        "This removes the app, disables launch at login, and deletes this Mac’s Connector identity and paired-device permissions. Pairing must be completed again after reinstalling."
                     )
                 }
 

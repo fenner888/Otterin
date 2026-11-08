@@ -1399,6 +1399,20 @@ export class AcpSessionClient {
     return Boolean(this.child);
   }
 
+  // PID of the spawned `devin acp` child, compared against session lock files
+  // to attribute a live lock to this bridge rather than an external driver.
+  getSessionDriverPid(): number | null {
+    return this.child?.pid ?? null;
+  }
+
+  // True while this session has a live bridge-owned prompt turn. The finished
+  // turn snapshot in activeTurn is intentionally not evidence of ownership:
+  // finishPrompt releases the session lock before retaining the snapshot.
+  isSessionConnectorOwned(sessionIdInput: unknown): boolean {
+    const parsed = sessionIdSchema.safeParse(sessionIdInput);
+    return parsed.success && this.activePromptSessionId === parsed.data;
+  }
+
   async getSessionActivity(sessionIdInput: unknown): Promise<AcpSessionActivity | null> {
     const sessionId = sessionIdSchema.parse(sessionIdInput);
     if (this.activeActivity?.sessionId !== sessionId) return null;

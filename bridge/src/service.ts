@@ -1,4 +1,6 @@
+import { execFile } from 'node:child_process';
 import { basename, win32 } from 'node:path';
+import { promisify } from 'node:util';
 
 import { z } from 'zod';
 
@@ -146,6 +148,16 @@ const serviceOptionsSchema = z
   })
   .strict();
 
+// Opt-in ownership attribution (request flag `ownership: true`). Never emitted
+// unconditionally: iOS response schemas are strict and reject unknown fields.
+const sessionOwnerSchema = z.enum(['free', 'locked_external', 'connector_live']);
+const ownerNameSchema = z.string().min(1).max(160);
+
+interface SessionOwnership {
+  owner: z.infer<typeof sessionOwnerSchema>;
+  ownerName?: string;
+}
+
 const localSessionSchema = z
   .object({
     id: z.string().regex(/^local_[A-Za-z0-9_-]{43}$/),
@@ -167,6 +179,8 @@ const localSessionSchema = z
       })
       .strict()
       .optional(),
+    owner: sessionOwnerSchema.optional(),
+    ownerName: ownerNameSchema.optional(),
   })
   .strict();
 
@@ -238,6 +252,8 @@ const localLoadedSessionSchema = z
           .object({ id: modelIdSchema, name: z.string().min(1).max(160) })
           .strict()
           .optional(),
+        owner: sessionOwnerSchema.optional(),
+        ownerName: ownerNameSchema.optional(),
       })
       .strict(),
     messages: z.array(localHistoryMessageSchema).max(200),
@@ -393,6 +409,12 @@ export interface SessionDiscoveryAdapter {
   isSessionActivitySupported?(): boolean;
   getSessionActivity?(sessionId: string): Promise<AcpSessionActivity | null>;
   getSessionTurn?(sessionId: string): AcpSessionTurn | null | Promise<AcpSessionTurn | null>;
+  // Ownership probes (opt-in `ownership` request flag). The live-lock PID comes
+  // from the session store; the driver PID and connector-owned check come from
+  // the ACP client. All optional: adapters lacking them omit the owner field.
+  getSessionLockPid?(sessionId: string): Promise<number | null>;
+  getSessionDriverPid?(): number | null;
+  isSessionConnectorOwned?(sessionId: string): boolean;
   isSessionElicitationSupported?(): boolean;
   getPendingElicitation?(sessionId: string): AcpPendingElicitation | null;
   respondToElicitation?(
@@ -461,6 +483,7 @@ export interface BridgeServiceOptions {
   sessionHandles: SessionHandleRegistry;
   workspaceHandles: WorkspaceHandleRegistry;
   sessions: SessionDiscoveryAdapter;
+  processNameResolver?: ProcessNameResolver;
   peerLimit?: number;
   healthLimit?: number;
   sessionListLimit?: number;
@@ -763,14 +786,48 @@ function fitActivityResponse(
   return response;
 }
 
+export type ProcessNameResolver = (pid: number) => Promise<string | undefined>;
+
+const OWNER_NAME_CACHE_MS = 15_000;
+const OWNER_NAME_CACHE_LIMIT = 256;
+const execFileAsync = promisify(execFile);
+
+// Best-effort process name for an external lock holder (e.g. "Devin"). `ps`
+// does not exist on Windows; any failure simply omits ownerName. Results are
+// cached briefly so polling does not spawn `ps` on every list.
+function psProcessNameResolver(): ProcessNameResolver {
+  const cache = new Map<number, { name: string | undefined; expiresAt: number }>();
+  return async (pid) => {
+    const now = Date.now();
+    const cached = cache.get(pid);
+    if (cached && cached.expiresAt > now) return cached.name;
+    let name: string | undefined;
+    try {
+      const { stdout } = await execFileAsync('ps', ['-p', String(pid), '-o', 'comm='], {
+        timeout: 2_000,
+        maxBuffer: 4_096,
+      });
+      const resolved = cleanDisplayText(basename(stdout.trim()), 160, '');
+      name = resolved === '' ? undefined : resolved;
+    } catch {
+      name = undefined;
+    }
+    if (cache.size >= OWNER_NAME_CACHE_LIMIT) cache.clear();
+    cache.set(pid, { name, expiresAt: now + OWNER_NAME_CACHE_MS });
+    return name;
+  };
+}
+
 export class BridgeService {
   private readonly bridgeId: string;
   private readonly rates: z.infer<typeof serviceOptionsSchema>;
+  private readonly processNameResolver: ProcessNameResolver;
   private listing = false;
   private loading = false;
 
   constructor(private readonly dependencies: BridgeServiceOptions) {
     this.bridgeId = opaqueIdSchema.parse(dependencies.bridgeId);
+    this.processNameResolver = dependencies.processNameResolver ?? psProcessNameResolver();
     this.rates = serviceOptionsSchema.parse({
       peerLimit: dependencies.peerLimit,
       healthLimit: dependencies.healthLimit,
@@ -960,6 +1017,43 @@ export class BridgeService {
     return this.dependencies.rateLimiter.consume(key, rule, now);
   }
 
+  // Opt-in ownership attribution: connector_live means the bridge's own ACP
+  // child drives the session, locked_external means another live process holds
+  // the lock, free means no live lock. Probe failures omit the field rather
+  // than report a guess.
+  private async sessionOwnership(sessionId: string): Promise<SessionOwnership | undefined> {
+    const sessions = this.dependencies.sessions;
+    if (
+      !sessions.getSessionLockPid &&
+      !sessions.isSessionConnectorOwned &&
+      !sessions.getSessionDriverPid
+    ) {
+      return undefined;
+    }
+    try {
+      if (sessions.isSessionConnectorOwned?.(sessionId) === true) {
+        return { owner: 'connector_live' };
+      }
+      const lockPid = (await sessions.getSessionLockPid?.(sessionId)) ?? null;
+      const driverPid = sessions.getSessionDriverPid?.() ?? null;
+      if (lockPid !== null && driverPid !== null && lockPid === driverPid) {
+        return { owner: 'connector_live' };
+      }
+      // "free" is only honest when a lock probe actually ran and found no
+      // live holder; without one the field is omitted rather than guessed.
+      if (lockPid === null) {
+        return sessions.getSessionLockPid ? { owner: 'free' } : undefined;
+      }
+      const ownerName = await this.processNameResolver(lockPid);
+      return {
+        owner: 'locked_external',
+        ...(ownerName === undefined ? {} : { ownerName }),
+      };
+    } catch {
+      return undefined;
+    }
+  }
+
   private async listSessions(
     authorization: RequestAuthorization,
     now: number,
@@ -972,36 +1066,46 @@ export class BridgeService {
     try {
       const body = sessionListBodySchema.parse(authorization.request.body);
       const interaction = body.interaction === true;
+      const includeOwnership = body.ownership === true;
       const page = await this.dependencies.sessions.listSessions(
         body.cursor === undefined ? {} : { cursor: body.cursor },
       );
       const mayReadTitles =
         authorization.request.device.permissions.includes('session:content:read');
       const response = localSessionPageSchema.parse({
-        sessions: page.sessions.map((session) => ({
-          id: this.dependencies.sessionHandles.register(session.sessionId, now),
-          origin: 'computer',
-          workspaceName: cleanDisplayText(basename(session.cwd), 160, 'Workspace'),
-          hasTitle: Boolean(session.title),
-          title:
-            mayReadTitles && session.title
-              ? cleanDisplayText(session.title, 10_000, 'Untitled session')
-              : undefined,
-          updatedAt: session.updatedAt,
-          model: session.modelId
-            ? { id: session.modelId, name: modelDisplayName(session.modelId) }
-            : undefined,
-          activity: session.activity
-            ? {
-                active: session.activity.active,
-                kind: session.activity.kind,
-                updatedAt: session.activity.updatedAt,
-                ...(interaction && session.activity.awaiting
-                  ? { awaiting: session.activity.awaiting }
-                  : {}),
-              }
-            : undefined,
-        })),
+        sessions: await Promise.all(
+          page.sessions.map(async (session) => {
+            const ownership = includeOwnership
+              ? await this.sessionOwnership(session.sessionId)
+              : undefined;
+            return {
+              id: this.dependencies.sessionHandles.register(session.sessionId, now),
+              origin: 'computer',
+              workspaceName: cleanDisplayText(basename(session.cwd), 160, 'Workspace'),
+              hasTitle: Boolean(session.title),
+              title:
+                mayReadTitles && session.title
+                  ? cleanDisplayText(session.title, 10_000, 'Untitled session')
+                  : undefined,
+              updatedAt: session.updatedAt,
+              model: session.modelId
+                ? { id: session.modelId, name: modelDisplayName(session.modelId) }
+                : undefined,
+              activity: session.activity
+                ? {
+                    active: session.activity.active,
+                    kind: session.activity.kind,
+                    updatedAt: session.activity.updatedAt,
+                    ...(interaction && session.activity.awaiting
+                      ? { awaiting: session.activity.awaiting }
+                      : {}),
+                  }
+                : undefined,
+              ...(ownership ? { owner: ownership.owner } : {}),
+              ...(ownership?.ownerName === undefined ? {} : { ownerName: ownership.ownerName }),
+            };
+          }),
+        ),
         nextCursor: page.nextCursor,
       });
       return { status: 200, body: response };
@@ -1021,6 +1125,7 @@ export class BridgeService {
     }
     const body = sessionLoadBodySchema.parse(authorization.request.body);
     const interaction = body.interaction === true;
+    const includeOwnership = body.ownership === true;
     const rawSessionId = this.dependencies.sessionHandles.resolve(body.sessionId, now);
     if (!rawSessionId) return { status: 404, body: { error: 'not_found' } };
     if (this.loading) return { status: 429, body: { error: 'busy' } };
@@ -1028,6 +1133,9 @@ export class BridgeService {
     this.loading = true;
     try {
       const loaded = await this.dependencies.sessions.loadSession(rawSessionId);
+      const ownership = includeOwnership
+        ? await this.sessionOwnership(rawSessionId)
+        : undefined;
       if (loaded.sessionId !== rawSessionId) {
         throw new Error('Loaded ACP session did not match the requested session');
       }
@@ -1058,6 +1166,8 @@ export class BridgeService {
           model: loaded.modelId
             ? { id: loaded.modelId, name: modelDisplayName(loaded.modelId) }
             : undefined,
+          ...(ownership ? { owner: ownership.owner } : {}),
+          ...(ownership?.ownerName === undefined ? {} : { ownerName: ownership.ownerName }),
         },
         messages: keptMessages.map(({ message, index }, sequence) => ({
           sequence: sequence + 1,

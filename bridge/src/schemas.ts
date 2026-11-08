@@ -111,6 +111,7 @@ export const sessionListBodySchema = z
   .object({
     cursor: cursorSchema.optional(),
     interaction: z.literal(true).optional(),
+    ownership: z.boolean().optional(),
   })
   .strict();
 
@@ -119,6 +120,7 @@ export const sessionLoadBodySchema = z
     sessionId: sessionIdSchema,
     interaction: z.literal(true).optional(),
     timestamps: z.literal(true).optional(),
+    ownership: z.boolean().optional(),
   })
   .strict();
 
