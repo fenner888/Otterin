@@ -24,6 +24,12 @@ screenshot-fixture code excised. Upstream diffs to the source files must be
 ported manually; the `tests/mac-client` oracle tests (real
 `authorizeRequest` + `BridgeService`) are the divergence tripwire.
 
+Client-side carve-outs inside `computerBridge.ts` (not in upstream source):
+- `session.list` request body admits `ownership: true` and the response
+  schema admits `owner`/`ownerName` (patch 6's opt-in contract); negotiation
+  is optimistic with an `invalid_request` fallback cached per bridge, the
+  same pattern as `interaction`.
+
 ## Spec deviations (documented, deliberate)
 
 - **Spec 012 §review summary** — patch 5 adds a truncated device-key SAS to
