@@ -1257,6 +1257,8 @@ export class AcpSessionClient {
   private creatingContinuation = false;
   private modelCatalog: AcpModelCatalog | null = null;
   private readonly sessionModelSelectors = new Map<string, AcpModelSelector>();
+  private authenticated = false;
+  private authenticating: Promise<boolean> | null = null;
 
   constructor(options: AcpClientOptions) {
     this.options = acpClientOptionsSchema.parse(options);
@@ -1284,6 +1286,10 @@ export class AcpSessionClient {
     this.creatingContinuation = false;
     this.modelCatalog = null;
     this.sessionModelSelectors.clear();
+    // A forwarded WINDSURF_API_KEY makes the child pre-authenticated;
+    // otherwise authenticate is deferred to the first credential-gated call.
+    this.authenticated = Boolean(environment.WINDSURF_API_KEY);
+    this.authenticating = null;
     this.canListSessions = false;
     this.canLoadSessions = false;
     this.canEmbedContext = false;
@@ -1323,11 +1329,6 @@ export class AcpSessionClient {
             Record<string, unknown> | undefined
         )?.close,
       );
-      // Newer devin acp builds require host authentication before session
-      // load/prompt. devin-browser resolves the local Devin.app credential
-      // non-interactively on machines where it is installed; failure is
-      // non-fatal so list still works when no credential exists.
-      await this.request('authenticate', { methodId: 'devin-browser' }, z.object({}).passthrough(), 'authentication').catch(() => undefined);
     } catch (error) {
       await this.stop();
       throw error;
@@ -1642,6 +1643,37 @@ export class AcpSessionClient {
     }
   }
 
+  // Newer devin acp builds require host authentication before session
+  // prompts. Authentication is deferred until the first credential-gated
+  // call because session/list and session/load answer without it, and a
+  // hanging authenticate request would serialize-block every later request
+  // on this child. On timeout request() aborts the child so the runner
+  // respawns a clean process for the next call.
+  private ensureAuthenticated(): Promise<boolean> {
+    if (this.authenticated) return Promise.resolve(true);
+    if (!this.authenticating) {
+      this.authenticating = this.request(
+        'authenticate',
+        { methodId: 'devin-browser' },
+        z.object({}).passthrough(),
+        'authentication',
+      ).then(
+        () => {
+          this.authenticated = true;
+          return true;
+        },
+        () => false,
+      );
+    }
+    return this.authenticating;
+  }
+
+  private async requireAuthentication(): Promise<void> {
+    if (!(await this.ensureAuthenticated())) {
+      throw new Error('Devin session authentication is unavailable');
+    }
+  }
+
   async loadSession(input: unknown): Promise<AcpLoadedSession> {
     if (!this.child) throw new Error('ACP client is not started');
     if (!this.canLoadSessions) throw new Error('ACP agent does not support session loading');
@@ -1717,6 +1749,7 @@ export class AcpSessionClient {
     if (!this.loadedSessions.has(sessionId)) {
       throw new Error('ACP session must be loaded before prompting');
     }
+    await this.requireAuthentication();
     if (modelInput !== undefined) await this.selectSessionModel(sessionId, modelInput);
     if (autoApprove !== undefined) await this.applyAutoApprove(sessionId, autoApprove);
     this.startPrompt(sessionId, [{ type: 'text', text }]);
@@ -1743,6 +1776,7 @@ export class AcpSessionClient {
     }
     this.creatingContinuation = true;
     try {
+      await this.requireAuthentication();
       const created = await this.request(
         'session/new',
         { cwd, mcpServers: [] },
@@ -1805,6 +1839,7 @@ export class AcpSessionClient {
     }
     this.creatingContinuation = true;
     try {
+      await this.requireAuthentication();
       const created = await this.request(
         'session/new',
         { cwd, mcpServers: [] },
