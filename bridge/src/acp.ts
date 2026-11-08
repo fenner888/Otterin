@@ -17,7 +17,7 @@ import { utf8Tail } from './text';
 
 const ACP_PROTOCOL_VERSION = 1 as const;
 
-const DEFAULT_REQUEST_TIMEOUT_MS = 5_000;
+const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
 const DEFAULT_PROMPT_TIMEOUT_MS = 30 * 60_000;
 const DEFAULT_PERMISSION_TIMEOUT_MS = 10 * 60_000;
 const MAX_JSON_RPC_BYTES = 1024 * 1024;
@@ -1323,6 +1323,11 @@ export class AcpSessionClient {
             Record<string, unknown> | undefined
         )?.close,
       );
+      // Newer devin acp builds require host authentication before session
+      // load/prompt. devin-browser resolves the local Devin.app credential
+      // non-interactively on machines where it is installed; failure is
+      // non-fatal so list still works when no credential exists.
+      await this.request('authenticate', { methodId: 'devin-browser' }, z.object({}).passthrough(), 'authentication').catch(() => undefined);
     } catch (error) {
       await this.stop();
       throw error;

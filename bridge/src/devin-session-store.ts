@@ -20,7 +20,7 @@ import { utf8Tail } from './text';
 
 // Schemas 17–19 add auxiliary data without changing the reviewed main-chain reads.
 // Deliberately do not traverse those tables or accept arbitrary future versions.
-const REVIEWED_SCHEMA_VERSIONS = new Set([16, 17, 18, 19]);
+const REVIEWED_SCHEMA_VERSIONS = new Set([16, 17, 18, 19, 20]);
 const MAXIMUM_DATABASE_BYTES = 16 * 1024 ** 3;
 const MAXIMUM_CHAIN_NODES = 10_000;
 const MAXIMUM_MESSAGES = 200;
