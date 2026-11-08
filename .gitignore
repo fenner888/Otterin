@@ -45,3 +45,4 @@ yarn-error.*
 # .NET build outputs (Windows Connector)
 **/bin/
 **/obj/
+mac-client/release/

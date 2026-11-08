@@ -21,4 +21,5 @@ dmg:
   artifactName: Otterin-${version}-macos-${arch}.${ext}
 zip:
   artifactName: Otterin-${version}-macos-${arch}.${ext}
+afterPack: scripts/afterPack.mjs
 afterSign: scripts/notarize.mjs
