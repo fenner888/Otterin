@@ -34,12 +34,21 @@ export function sign(keyId: string, message: string): Promise<string> {
   return requireDeviceCrypto().sign(keyId, message);
 }
 
-export function verifySignature(
+export function verify(
   publicKeySpki: string,
   message: string,
   signature: string,
 ): Promise<boolean> {
   return requireDeviceCrypto().verify(publicKeySpki, message, signature);
+}
+
+// Alias kept for callers that used the pre-copy facade name.
+export function verifySignature(
+  publicKeySpki: string,
+  message: string,
+  signature: string,
+): Promise<boolean> {
+  return verify(publicKeySpki, message, signature);
 }
 
 export function hmacSha256(secret: string, message: string): Promise<string> {
