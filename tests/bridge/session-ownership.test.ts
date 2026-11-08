@@ -12,7 +12,6 @@ import {
   sessionListBodySchema,
   sessionLoadBodySchema,
   type BridgeMethod,
-  type BridgePermission,
   type DeviceRecord,
   type SignedRequestEnvelope,
 } from '../../bridge/src/schemas';
