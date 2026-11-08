@@ -1,15 +1,22 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 // Invoke-only bridge surface. Channel names are pinned; the main process
-// re-validates every payload with zod.
+// re-validates every payload with zod and pins handlers to this window's
+// top frame (src/main/ipc.ts owns the authoritative channel table — keep
+// these in sync).
 const CHANNELS = [
   'pair:capture',
+  'pair:import',
+  'pair:preview',
   'pair:submit',
+  'pair:cancel',
   'computers:list',
   'computers:disconnect',
   'bridge:health',
   'bridge:features',
   'bridge:version',
+  'bridge:platform',
+  'bridge:presentation',
   'session:list',
   'session:load',
   'session:activity',
@@ -22,6 +29,9 @@ const CHANNELS = [
   'session:createOptions',
   'session:create',
   'device:revoke',
+  'scheduler:snapshot',
+  'scheduler:setSession',
+  'scheduler:pollNow',
 ] as const;
 
 export type OtterinChannel = (typeof CHANNELS)[number];
