@@ -83,6 +83,14 @@ export const connectorEventSchema = z.discriminatedUnion('type', [
       type: z.literal('pairing_review'),
       pairingId: opaqueIdSchema,
       deviceName: z.string().min(1).max(80),
+      // Truncated device-key SAS; optional so events emitted before patch 5
+      // still validate and older Connectors simply ignore the field.
+      deviceKeyFingerprint: z
+        .string()
+        .min(8)
+        .max(43)
+        .regex(/^[A-Za-z0-9_-]+$/)
+        .optional(),
       expiresAt: z.number().int().nonnegative(),
     })
     .strict(),

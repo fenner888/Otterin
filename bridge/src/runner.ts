@@ -141,6 +141,7 @@ export interface SessionHistoryLifecycle {
     updatedAt: number;
     pendingQuestion?: AcpTerminalQuestion;
   } | null>;
+  getSessionLockPid?(sessionId: string): Promise<number | null>;
 }
 
 export interface DesktopBridgeRunnerDependencies {
@@ -351,6 +352,20 @@ export class RecoverableSessionDiscoveryAdapter implements SessionDiscoveryAdapt
     const toolCallIds = this.current.getTimedOutToolCallIds?.(input);
     if (!toolCallIds?.size) return turn;
     return { ...turn, activity: markTimedOutEntries(turn.activity, toolCallIds) };
+  }
+
+  // Ownership probes (fork patch 6): the lock PID belongs to the history store,
+  // the driver PID and live-turn check belong to the ACP client.
+  async getSessionLockPid(sessionId: string): Promise<number | null> {
+    return (await this.history?.getSessionLockPid?.(sessionId)) ?? null;
+  }
+
+  getSessionDriverPid(): number | null {
+    return this.current.getSessionDriverPid?.() ?? null;
+  }
+
+  isSessionConnectorOwned(sessionId: string): boolean {
+    return this.current.isSessionConnectorOwned?.(sessionId) === true;
   }
 
   isSessionElicitationSupported(): boolean {

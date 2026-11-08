@@ -275,6 +275,7 @@ export interface PendingPairingReview {
   pairingId: string;
   deviceId: string;
   deviceName: string;
+  deviceKeyFingerprint: string;
   expiresAt: number;
 }
 
@@ -306,6 +307,17 @@ function publicKeyFromSpki(value: string): KeyObject | null {
   } catch {
     return null;
   }
+}
+
+// Truncated verification SAS shown in the approval UX: same sha256-over-SPKI-DER
+// construction as bridgeKeyFingerprint, cut to a length a human can compare.
+const DEVICE_KEY_FINGERPRINT_LENGTH = 12;
+
+export function deviceKeyFingerprint(devicePublicKeySpki: string): string {
+  return createHash('sha256')
+    .update(Buffer.from(devicePublicKeySpki, 'base64url'))
+    .digest('base64url')
+    .slice(0, DEVICE_KEY_FINGERPRINT_LENGTH);
 }
 
 function withoutProof(request: PairingRequest): UnsignedPairingRequest {
@@ -531,6 +543,7 @@ export class PairingManager {
         pairingId: request.pairingId,
         deviceId: request.deviceId,
         deviceName: request.deviceName,
+        deviceKeyFingerprint: deviceKeyFingerprint(request.devicePublicKeySpki),
         expiresAt: pending.expiresAt,
       },
       pollToken,
@@ -627,6 +640,7 @@ export class PairingManager {
       pairingId,
       deviceId: state.request.deviceId,
       deviceName: state.request.deviceName,
+      deviceKeyFingerprint: deviceKeyFingerprint(state.request.devicePublicKeySpki),
       expiresAt: state.expiresAt,
     }));
   }

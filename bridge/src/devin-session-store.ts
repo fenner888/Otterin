@@ -660,6 +660,16 @@ export class DevinSessionStore {
     }
   }
 
+  // Live-lock PID for the session, surfaced so callers can attribute session
+  // ownership (connector-owned vs external driver) without re-reading the
+  // lock file. Null when the lock file is missing, unparsable, ours, or dead.
+  // Unlike getSessionLiveness this does not require a supported database:
+  // the lock directory check is independent of schema compatibility.
+  async getSessionLockPid(sessionIdInput: unknown): Promise<number | null> {
+    const sessionId = sessionIdSchema.parse(sessionIdInput);
+    return this.sessionLockPid(sessionId);
+  }
+
   async getSessionLiveness(sessionIdInput: unknown): Promise<SessionLiveness | null> {
     if (!this.supported) return null;
     const sessionId = sessionIdSchema.parse(sessionIdInput);
@@ -881,13 +891,17 @@ export class DevinSessionStore {
   }
 
   private async sessionLockAlive(sessionId: string): Promise<boolean> {
+    return (await this.sessionLockPid(sessionId)) !== null;
+  }
+
+  private async sessionLockPid(sessionId: string): Promise<number | null> {
     try {
       const content = await readFile(join(this.lockDirectory, `${sessionId}.lock`));
       const pid = Number.parseInt(content.subarray(0, MAXIMUM_LOCK_BYTES).toString('utf8'), 10);
-      if (!Number.isInteger(pid) || pid <= 0 || pid === process.pid) return false;
-      return this.isProcessAlive(pid);
+      if (!Number.isInteger(pid) || pid <= 0 || pid === process.pid) return null;
+      return this.isProcessAlive(pid) ? pid : null;
     } catch {
-      return false;
+      return null;
     }
   }
 
