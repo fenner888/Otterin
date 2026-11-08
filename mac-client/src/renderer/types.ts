@@ -56,7 +56,7 @@
  *     { status:'denied' } | { status:'expired' } — offer TTL or approval
  *     window lapsed; renderer returns to the capture step.
  *
- * Channels the main side still has to wire (called today, failure-tolerant):
+ * App-level affordances (fixed-argv `open -a` on the main side):
  *
  *   app:openConnector         ()  — `open -a "Otterin Connector"` so its QR
  *                                   pairing window is visible for capture.
@@ -113,7 +113,6 @@ export type OtterinChannel =
   | 'session:createOptions'
   | 'session:create'
   | 'device:revoke'
-  /** Documented for main; not yet in the preload allowlist. */
   | 'app:openConnector'
   | 'app:openDevin';
 

@@ -19,7 +19,7 @@ export interface BridgeConnection {
   getFeatures(): Promise<unknown>;
   getVersion(): Promise<unknown>;
   getPlatform(): Promise<unknown>;
-  listSessions(input?: { cursor?: string }): Promise<unknown>;
+  listSessions(input?: { cursor?: string; ownership?: boolean }): Promise<unknown>;
   loadSession(sessionId: string, options?: { timestamps?: boolean }): Promise<unknown>;
   getSessionActivity(sessionId: string): Promise<unknown>;
   getSessionElicitation(sessionId: string): Promise<unknown>;

@@ -73,6 +73,9 @@ type CachedBridgeFeatures = {
 };
 const bridgeFeaturesCache = new Map<string, CachedBridgeFeatures>();
 const bridgeInteractionSupport = new Map<string, boolean>();
+// Optimistic support cache for the fork's opt-in `ownership: true` request
+// flag: absent = "try it", false = the Connector rejected it (older build).
+const bridgeOwnershipSupport = new Map<string, boolean>();
 const bridgePresentationRejected = new Set<string>();
 const computerModelSchema = z
   .object({
@@ -143,7 +146,11 @@ export const computerBridgeVersionSchema = z
 const deviceRevokeBodySchema = z.object({}).strict();
 const deviceRevokeResponseSchema = z.object({ revoked: z.literal(true) }).strict();
 const sessionListBodySchema = z
-  .object({ cursor: cursorSchema.optional(), interaction: interactionOptInSchema })
+  .object({
+    cursor: cursorSchema.optional(),
+    interaction: interactionOptInSchema,
+    ownership: interactionOptInSchema,
+  })
   .strict();
 const sessionLoadBodySchema = z
   .object({
@@ -471,6 +478,10 @@ export const computerSessionSummarySchema = z
       })
       .strict()
       .optional(),
+    // Opt-in `ownership: true` response fields (fork patch 6): absent on
+    // unpatched Connectors and whenever the request omitted the flag.
+    owner: z.enum(['free', 'locked_external', 'connector_live']).optional(),
+    ownerName: z.string().min(1).max(160).optional(),
   })
   .strict()
   .superRefine((value, context) => {
@@ -901,6 +912,25 @@ async function requestWithInteractionFallback<T>(
   }
 }
 
+// Mirrors requestWithInteractionFallback for the `ownership` flag — no
+// feature probe exists for it, so support is optimistic until a Connector
+// 400 proves otherwise.
+async function requestWithOwnershipFallback<T>(
+  credential: PairedComputerCredential,
+  request: (includeOwnership: boolean) => Promise<T>,
+): Promise<T> {
+  if (bridgeOwnershipSupport.get(credential.bridgeId) === false) return request(false);
+  try {
+    return await request(true);
+  } catch (error) {
+    if (!(error instanceof ComputerBridgeError) || error.code !== 'invalid_request') {
+      throw error;
+    }
+    bridgeOwnershipSupport.set(credential.bridgeId, false);
+    return request(false);
+  }
+}
+
 async function requestPlatform(
   credential: PairedComputerCredential,
 ): Promise<ComputerBridgePlatform | 'unknown'> {
@@ -955,7 +985,7 @@ async function requestDeviceRevocation(credential: PairedComputerCredential): Pr
 
 async function requestSessionList(
   credential: PairedComputerCredential,
-  input: { cursor?: string; interaction?: true } = {},
+  input: { cursor?: string; interaction?: true; ownership?: true } = {},
 ): Promise<ComputerSessionPage> {
   const body = sessionListBodySchema.parse(input);
   const response = await requestComputer(credential, 'session.list', body);
@@ -1137,7 +1167,7 @@ export interface ComputerBridgeConnection {
   getHealth(): Promise<ComputerBridgeHealth>;
   getFeatures(): Promise<ComputerBridgeFeatures>;
   getVersion(): Promise<ComputerBridgeVersionStatus>;
-  listSessions(input?: { cursor?: string }): Promise<ComputerSessionPage>;
+  listSessions(input?: { cursor?: string; ownership?: boolean }): Promise<ComputerSessionPage>;
   loadSession(
     sessionId: string,
     options?: { timestamps?: boolean },
@@ -1169,13 +1199,20 @@ function connectionForCredential(credential: PairedComputerCredential): Computer
     getHealth: () => requestHealth(credential),
     getFeatures: () => requestFeatures(credential),
     getVersion: () => requestVersion(credential),
-    listSessions: (input = {}) =>
-      requestWithInteractionFallback(credential, (includeInteraction) =>
+    listSessions: (input = {}) => {
+      const request = (includeInteraction: boolean, includeOwnership: boolean) =>
         requestSessionList(credential, {
-          ...input,
+          ...(input.cursor ? { cursor: input.cursor } : {}),
           ...(includeInteraction ? { interaction: true as const } : {}),
-        }),
-      ),
+          ...(includeOwnership ? { ownership: true as const } : {}),
+        });
+      if (input.ownership !== true) {
+        return requestWithInteractionFallback(credential, (i) => request(i, false));
+      }
+      return requestWithOwnershipFallback(credential, (includeOwnership) =>
+        requestWithInteractionFallback(credential, (i) => request(i, includeOwnership)),
+      );
+    },
     loadSession: (sessionId, options = {}) =>
       requestWithInteractionFallback(credential, (includeInteraction) =>
         requestSessionLoad(credential, {

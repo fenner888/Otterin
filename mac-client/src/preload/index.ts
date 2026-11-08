@@ -32,6 +32,8 @@ const CHANNELS = [
   'scheduler:snapshot',
   'scheduler:setSession',
   'scheduler:pollNow',
+  'app:openConnector',
+  'app:openDevin',
 ] as const;
 
 export type OtterinChannel = (typeof CHANNELS)[number];

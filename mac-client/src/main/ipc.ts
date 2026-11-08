@@ -10,6 +10,7 @@
 // error-mapping tests without the electron binary.
 
 import type { BrowserWindow, IpcMainInvokeEvent } from 'electron';
+import { execFile } from 'node:child_process';
 import { z } from 'zod';
 
 import { bridgeErrorCode, type ResolveBridgeConnection } from './bridge-client';
@@ -67,26 +68,41 @@ const pairImportSchema = z
   })
   .strict();
 
+// Opt-in request flags the renderer passes for protocol negotiation —
+// client-core owns whether they reach the wire (and falls back on 400 for
+// Connectors that predate them). Schemas just admit the flags.
+const optInFlagSchema = z.literal(true).optional();
+
 const channelSchemas = {
   'pair:capture': emptyPayloadSchema,
   'pair:import': pairImportSchema,
   'pair:preview': emptyPayloadSchema,
-  'pair:submit': emptyPayloadSchema,
+  'pair:submit': z
+    .object({ deviceName: z.string().min(1).max(120).optional() })
+    .strict(),
   'pair:cancel': emptyPayloadSchema,
   'computers:list': emptyPayloadSchema,
   'computers:disconnect': bridgeIdPayloadSchema,
   'bridge:health': bridgeIdPayloadSchema,
-  'bridge:features': bridgeIdPayloadSchema,
+  'bridge:features': bridgeIdPayloadSchema
+    .extend({ presentation: optInFlagSchema })
+    .strict(),
   'bridge:version': bridgeIdPayloadSchema,
   'bridge:platform': bridgeIdPayloadSchema,
   'bridge:presentation': bridgeIdPayloadSchema,
   'session:list': bridgeIdPayloadSchema
-    .extend({ cursor: z.string().min(1).max(4_096).optional() })
+    .extend({
+      cursor: z.string().min(1).max(4_096).optional(),
+      interaction: optInFlagSchema,
+      ownership: optInFlagSchema,
+    })
     .strict(),
   'session:load': sessionPayloadSchema
-    .extend({ timestamps: z.boolean().optional() })
+    .extend({ timestamps: z.boolean().optional(), interaction: optInFlagSchema })
     .strict(),
-  'session:activity': sessionPayloadSchema,
+  'session:activity': sessionPayloadSchema
+    .extend({ interaction: optInFlagSchema })
+    .strict(),
   'session:prompt': sessionPayloadSchema
     .extend({
       text: z.string().trim().min(1).max(100_000),
@@ -135,13 +151,15 @@ const channelSchemas = {
     .extend({ sessionId: localSessionIdSchema.nullable() })
     .strict(),
   'scheduler:pollNow': emptyPayloadSchema,
+  'app:openConnector': emptyPayloadSchema,
+  'app:openDevin': emptyPayloadSchema,
 } as const;
 
 export type OtterinIpcChannel = keyof typeof channelSchemas;
 export const OTTERIN_IPC_CHANNELS = Object.keys(channelSchemas) as OtterinIpcChannel[];
 
 export type IpcResult =
-  | { ok: true; data: unknown }
+  | { ok: true; result: unknown }
   | { ok: false; error: { code: string; message: string } };
 
 // -- error mapping -----------------------------------------------------------
@@ -181,6 +199,21 @@ export interface IpcDeps {
 function electronApi(): typeof import('electron') {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   return require('electron') as typeof import('electron');
+}
+
+// Launches a companion app by name (`open -a`). Fixed argv, no shell — the
+// renderer cannot influence the target. Failure means "not installed" and
+// surfaces as `unavailable` to the renderer.
+function openMacApp(appName: 'Otterin Connector' | 'Devin'): Promise<{ opened: boolean }> {
+  return new Promise((resolve, reject) => {
+    execFile('/usr/bin/open', ['-a', appName], (error) => {
+      if (error) {
+        reject(new BridgeTransportError(`${appName} is not installed on this Mac`, 'unavailable'));
+        return;
+      }
+      resolve({ opened: true });
+    });
+  });
 }
 
 function senderIsTrusted(
@@ -276,9 +309,12 @@ export function registerIpcHandlers(deps: IpcDeps): void {
     'bridge:presentation': (payload) =>
       requireClientCoreProtocol().getPresentation(bridgeIdPayloadSchema.parse(payload).bridgeId),
     'session:list': (payload) => {
-      const { bridgeId, cursor } = channelSchemas['session:list'].parse(payload);
+      const { bridgeId, cursor, ownership } = channelSchemas['session:list'].parse(payload);
       return resolveBridge(bridgeId, deps.resolveConnection).then((connection) =>
-        connection.listSessions(cursor ? { cursor } : {}),
+        connection.listSessions({
+          ...(cursor ? { cursor } : {}),
+          ...(ownership ? { ownership } : {}),
+        }),
       );
     },
     'session:load': (payload) => {
@@ -364,6 +400,8 @@ export function registerIpcHandlers(deps: IpcDeps): void {
       scheduler.pollNow();
       return Promise.resolve({ polled: true });
     },
+    'app:openConnector': () => openMacApp('Otterin Connector'),
+    'app:openDevin': () => openMacApp('Devin'),
   };
 
   for (const channel of OTTERIN_IPC_CHANNELS) {
@@ -376,7 +414,7 @@ export function registerIpcHandlers(deps: IpcDeps): void {
           };
         }
         const parsed = channelSchemas[channel].parse(payload);
-        return { ok: true, data: await dispatch[channel](parsed) };
+        return { ok: true, result: await dispatch[channel](parsed) };
       } catch (error) {
         const publicError = toPublicError(error);
         if (publicError.code === 'internal_error') {
