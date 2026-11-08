@@ -41,6 +41,10 @@ process.stdin.on('data', (chunk) => {
   for (const line of lines) {
     if (!line.trim()) continue;
     const request = JSON.parse(line);
+    if (request.method === 'authenticate') {
+      process.stdout.write(JSON.stringify({jsonrpc: '2.0', id: request.id, result: {}}) + '\\n');
+      continue;
+    }
     ${body}
   }
 });
@@ -232,6 +236,10 @@ if (process.argv.slice(2).join(' ') === 'models list --format json') {
     while ((newline = buffer.indexOf('\\n')) >= 0) {
       const request = JSON.parse(buffer.slice(0, newline));
       buffer = buffer.slice(newline + 1);
+      if (request.method === 'authenticate') {
+        process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:request.id,result:{}})+'\\n');
+        continue;
+      }
       if (request.method !== 'initialize') process.exit(29);
       process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:request.id,result:{protocolVersion:1,agentCapabilities:{}}})+'\\n');
     }
@@ -513,7 +521,9 @@ if (request.method === 'initialize') {
       await client.listSessions();
       await client.loadSession('session-prompt');
       await expect(client.promptSession('session-prompt', 'Continue.')).resolves.toBeUndefined();
-      await new Promise((resolve) => setTimeout(resolve, 40));
+      // Wait for the post-turn ownership release + respawn (initialize +
+      // authenticate round-trips) to complete.
+      await new Promise((resolve) => setTimeout(resolve, 300));
       expect(client.isSessionPromptSupported()).toBe(true);
       await expect(client.promptSession('session-prompt', 'Again.')).rejects.toThrow(
         'must be loaded before prompting',

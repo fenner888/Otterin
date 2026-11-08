@@ -95,7 +95,7 @@ describe('read-only Devin session store', () => {
     await rm(directory, { recursive: true, force: true });
   });
 
-  it.each([16, 17, 18, 19])(
+  it.each([16, 17, 18, 19, 20])(
     'reads only main-chain text during a WAL writer on schema %i',
     async (version) => {
       const databasePath = join(directory, 'sessions.db');
@@ -207,7 +207,7 @@ describe('read-only Devin session store', () => {
 
   it('fails closed for an unreviewed schema version', async () => {
     const databasePath = join(directory, 'sessions.db');
-    const database = createFixture(databasePath, 20);
+    const database = createFixture(databasePath, 21);
     database.close();
     await chmod(databasePath, 0o600);
 
@@ -216,7 +216,7 @@ describe('read-only Devin session store', () => {
     );
   });
 
-  it.each([16, 17, 18, 19])(
+  it.each([16, 17, 18, 19, 20])(
     'lists only visible, recently observed local workspaces and models on schema %i',
     async (version) => {
       const databasePath = join(directory, 'sessions.db');

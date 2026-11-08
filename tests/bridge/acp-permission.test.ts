@@ -38,6 +38,10 @@ process.stdin.on('data', (chunk) => {
   for (const line of lines) {
     if (!line.trim()) continue;
     const request = JSON.parse(line);
+    if (request.method === 'authenticate') {
+      process.stdout.write(JSON.stringify({jsonrpc: '2.0', id: request.id, result: {}}) + '\\n');
+      continue;
+    }
     ${body}
   }
 });
