@@ -1,6 +1,7 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { isAbsolute } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { isAbsolute, join } from 'node:path';
 import { StringDecoder } from 'node:string_decoder';
 
 import { z, type ZodType } from 'zod';
@@ -1027,7 +1028,38 @@ export function safeAcpChildEnvironment(
     const value = source[key];
     if (value) environment[key] = value;
   }
+  if (!environment.WINDSURF_API_KEY) {
+    const imported = devinCredentialApiKey(source);
+    if (imported) environment.WINDSURF_API_KEY = imported;
+  }
   return environment;
+}
+
+const DEVIN_CREDENTIALS_FILE_BYTES = 64 * 1024;
+const WINDSURF_API_KEY_PATTERN = /^\s*windsurf_api_key\s*=\s*"([A-Za-z0-9._~+/=-]{8,512})"\s*$/m;
+
+// ACP spawns ignore the CLI credential store by design and require the host
+// to authenticate — but devin acp only offers an interactive browser flow.
+// Importing the locally stored windsurf_api_key into the child environment
+// makes the child pre-authenticated, so prompts work without a browser
+// round-trip. An explicit WINDSURF_API_KEY always wins over the file.
+function devinCredentialApiKey(source: NodeJS.ProcessEnv): string | null {
+  const xdgData = source.XDG_DATA_HOME;
+  const home = source.HOME ?? source.USERPROFILE;
+  const credentialsPath =
+    xdgData && isAbsolute(xdgData)
+      ? join(xdgData, 'devin', 'credentials.toml')
+      : home && isAbsolute(home)
+        ? join(home, '.local', 'share', 'devin', 'credentials.toml')
+        : null;
+  if (!credentialsPath) return null;
+  try {
+    const content = readFileSync(credentialsPath, 'utf8');
+    if (Buffer.byteLength(content, 'utf8') > DEVIN_CREDENTIALS_FILE_BYTES) return null;
+    return WINDSURF_API_KEY_PATTERN.exec(content)?.[1] ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export function acpWorkingDirectory(environment: NodeJS.ProcessEnv): string {

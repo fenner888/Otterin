@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -75,6 +75,45 @@ process.stdin.on('data', (chunk) => {
       USERPROFILE: 'C:\\Users\\tester',
     });
     expect(environment.DEVINX_TEST_SECRET).toBeUndefined();
+  });
+
+  it('imports windsurf_api_key from the Devin credentials file when unset', () => {
+    const dataHome = mkdtempSync(join(tmpdir(), 'devinx-creds-'));
+    mkdirSync(join(dataHome, 'devin'), { recursive: true });
+    writeFileSync(
+      join(dataHome, 'devin', 'credentials.toml'),
+      'windsurf_api_key = "test-key_123"\napi_server_url = "https://example.test"\n',
+    );
+    try {
+      const environment = safeAcpChildEnvironment({
+        NODE_ENV: 'test',
+        XDG_DATA_HOME: dataHome,
+        DEVINX_TEST_SECRET: 'must-not-forward',
+      });
+      expect(environment.WINDSURF_API_KEY).toBe('test-key_123');
+      expect(environment.DEVINX_TEST_SECRET).toBeUndefined();
+    } finally {
+      rmSync(dataHome, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps an explicit WINDSURF_API_KEY over the credentials file', () => {
+    const dataHome = mkdtempSync(join(tmpdir(), 'devinx-creds-'));
+    mkdirSync(join(dataHome, 'devin'), { recursive: true });
+    writeFileSync(
+      join(dataHome, 'devin', 'credentials.toml'),
+      'windsurf_api_key = "file-key"\n',
+    );
+    try {
+      const environment = safeAcpChildEnvironment({
+        NODE_ENV: 'test',
+        XDG_DATA_HOME: dataHome,
+        WINDSURF_API_KEY: 'env-key',
+      });
+      expect(environment.WINDSURF_API_KEY).toBe('env-key');
+    } finally {
+      rmSync(dataHome, { recursive: true, force: true });
+    }
   });
 
   it('uses USERPROFILE when a Windows ACP process has no HOME', () => {

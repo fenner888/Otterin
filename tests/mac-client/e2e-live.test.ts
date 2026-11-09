@@ -79,8 +79,12 @@ async function retryTransient<T>(call: () => Promise<T>, timeoutMs = 90_000): Pr
     } catch (error) {
       const code =
         error instanceof Error && 'code' in error ? (error as { code?: string }).code : undefined;
-      if (code !== 'unavailable' || Date.now() >= deadline) throw error;
-      await new Promise((resolveDelay) => setTimeout(resolveDelay, 2_000));
+      if ((code !== 'unavailable' && code !== 'rate_limited') || Date.now() >= deadline) {
+        throw error;
+      }
+      await new Promise((resolveDelay) =>
+        setTimeout(resolveDelay, code === 'rate_limited' ? 6_000 : 2_000),
+      );
     }
   }
 }
@@ -205,22 +209,27 @@ run('live bridge E2E', () => {
     if (!workspace) throw new Error('no workspaces in create options');
     let newSessionId: string;
     try {
-      const created = await connection.createSession({
-        workspaceId: workspace.id,
-        text: 'Reply with exactly the word OK.',
-      });
+      const created = await retryTransient(
+        () =>
+          connection.createSession({
+            workspaceId: workspace.id,
+            text: 'Reply with exactly the word OK.',
+          }),
+        60_000,
+      );
       newSessionId = created.sessionId;
     } catch (error) {
       const code =
         error instanceof Error && 'code' in error ? (error as { code?: string }).code : undefined;
       if (code === 'unavailable') {
-        console.log('prompt path unavailable: ACP authentication did not complete (expected without WINDSURF_API_KEY or an interactive sign-in) — monitor paths verified');
+        console.log('prompt leg unavailable after retries (auth, session/new, or upstream throttle) — monitor paths verified');
         return;
       }
       throw error;
     }
     console.log(`created session ${newSessionId.slice(0, 16)}…`);
-    await connection.promptSession(newSessionId, 'Reply with exactly the word OK.');
+    // createSession already started the turn (session/new + prompt in one
+    // bridge call) — prompting again would correctly return 409 busy.
 
     const seenActivity = await waitFor(async () => {
       try {
