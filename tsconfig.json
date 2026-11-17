@@ -28,9 +28,6 @@
       ],
       "@components/*": [
         "./src/components/*"
-      ],
-      "@cache/*": [
-        "./src/cache/*"
       ]
     },
     "types": [
