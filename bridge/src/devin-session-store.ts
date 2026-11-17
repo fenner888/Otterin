@@ -18,9 +18,9 @@ import type {
 import { sessionIdSchema } from './schemas';
 import { utf8Tail } from './text';
 
-// Schemas 17–19 add auxiliary data without changing the reviewed main-chain reads.
+// Schemas 17–20 add auxiliary data without changing the reviewed main-chain reads.
 // Deliberately do not traverse those tables or accept arbitrary future versions.
-const REVIEWED_SCHEMA_VERSIONS = new Set([16, 17, 18, 19]);
+const REVIEWED_SCHEMA_VERSIONS = new Set([16, 17, 18, 19, 20]);
 const MAXIMUM_DATABASE_BYTES = 16 * 1024 ** 3;
 const MAXIMUM_CHAIN_NODES = 10_000;
 const MAXIMUM_MESSAGES = 200;
@@ -136,7 +136,7 @@ const requiredColumns = {
   refinery_schema_history: new Set(['version']),
 } as const;
 
-// Present in reviewed schemas 16–19 but absent from minimal fixtures; enriched
+// Present in reviewed schemas 16–20 but absent from minimal fixtures; enriched
 // fields are skipped rather than failing the load when the table is missing.
 const optionalColumns = {
   tool_call_state: new Set([
