@@ -1,0 +1,7 @@
+# Historical accessibility prose, not a credential.
+a9d34a7a5d87c395e6e74dc0039369aaddc9a5f0:specs/030-composer-picker-visual-system.md:generic-api-key:39
+# Deliberately fake credentials in SecureStore wipe tests.
+cb38a874267ab93782cfed89f01c35f7d6efb3fd:tests/auth/wipe.test.ts:generic-api-key:67
+a1d8603c6227ae4cec6cc42ab64a9a9fb052a95c:tests/auth/wipe.test.ts:generic-api-key:50
+# Mock session ID passed to getSession, not a credential.
+5049571575821a1cae9620299a468364938258c3:tests/api/endpoints.test.ts:generic-api-key:74
