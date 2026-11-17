@@ -59,13 +59,26 @@ function contextText(context: ScribeContext): string {
 
 function isValidStructuredWorkOrder(value: string): boolean {
   const headings = ['Goal', 'Scope / repo', 'Acceptance criteria', 'Constraints / non-goals'];
-  let previousIndex = -1;
-  for (const heading of headings) {
-    const index = value.indexOf(heading);
-    if (index <= previousIndex) return false;
-    previousIndex = index;
+  let section = -1;
+  let body: string[] = [];
+  const validBody = () => body.length > 0 && (
+    body.every((line) => /^-\s+\S/.test(line)) ||
+    (body.length === 1 && !/^(?:#|[-*+]|\d+[.)])\s/.test(body[0]!) && !body[0]!.endsWith(':'))
+  );
+  for (const rawLine of value.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    const headingIndex = headings.indexOf(line);
+    if (headingIndex !== -1) {
+      if (headingIndex !== section + 1 || (section !== -1 && !validBody())) return false;
+      section = headingIndex;
+      body = [];
+    } else {
+      if (section === -1) return false;
+      body.push(line);
+    }
   }
-  return value.trim().length > headings.join('').length;
+  return section === headings.length - 1 && validBody();
 }
 
 export const onDeviceScribeEngine: ScribeEngine = {

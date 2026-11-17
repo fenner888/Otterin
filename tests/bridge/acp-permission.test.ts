@@ -55,6 +55,7 @@ process.stdin.on('data', (chunk) => {
       | { outcome: 'selected'; optionId: string }
       | { outcome: 'cancelled' },
     extraRequests = '',
+    display: { title?: string; command?: string } = {},
   ): string {
     const expectedOptionId = result.outcome === 'selected' ? result.optionId : undefined;
     return fakeCli(`
@@ -83,8 +84,9 @@ if (request.method === 'initialize') {
       sessionId: '${SESSION_ID}',
       toolCall: {
         toolCallId: 'tool-call-1',
-        rawInput: { command: 'git status --short' },
-        _meta: { 'cognition.ai/editableCommand': 'git status --short' }
+        title: ${JSON.stringify(display.title)},
+        rawInput: { command: ${JSON.stringify(display.command ?? 'git status --short')} },
+        _meta: { 'cognition.ai/editableCommand': ${JSON.stringify(display.command ?? 'git status --short')} }
       },
       options: ${JSON.stringify(options)}
     }
@@ -143,10 +145,10 @@ if (request.method === 'initialize') {
   async function startPermissionClient(
     options: readonly AcpPermissionOption[],
     result: { outcome: 'selected'; optionId: string } | { outcome: 'cancelled' },
-    configuration: { permissionTimeoutMs?: number; extraRequests?: string } = {},
+    configuration: { permissionTimeoutMs?: number; extraRequests?: string; display?: { title?: string; command?: string } } = {},
   ): Promise<AcpSessionClient> {
     const client = new AcpSessionClient({
-      executablePath: permissionCli(options, result, configuration.extraRequests),
+      executablePath: permissionCli(options, result, configuration.extraRequests, configuration.display),
       requestTimeoutMs: 1_000,
       promptTimeoutMs: 5_000,
       permissionTimeoutMs: configuration.permissionTimeoutMs,
@@ -252,6 +254,23 @@ if (request.method === 'initialize') {
       client.respondToPermission(SESSION_ID, permission?.id, 'allow_once');
       expect(client.getPendingPermission(SESSION_ID)).toBeNull();
       expect(client.getSessionTurn(SESSION_ID)?.activity[0]?.status).toBe('running');
+    } finally {
+      await client.stop();
+    }
+  });
+
+  it.each([
+    { title: 'Run \u202Erelease\u202C\u200B', command: 'echo \u061C\u2066fixture\u2069\u200D', expectedTitle: 'Run release', expectedCommand: 'echo fixture' },
+    { title: '\u200B\u202E', command: '\u061C\u2066', expectedTitle: 'Ran command', expectedCommand: undefined },
+    { title: 'x'.repeat(201), command: 'y'.repeat(2_001), expectedTitle: 'x'.repeat(200), expectedCommand: 'y'.repeat(2_000) },
+  ])('cleans invisible approval text before presenting a decision: $title', async (display) => {
+    const client = await startPermissionClient(permissionOptions, { outcome: 'selected', optionId: 'allow_once' }, { display });
+    try {
+      const pending = await waitForPermission(client);
+      expect(pending?.title).toBe(display.expectedTitle);
+      expect(pending?.command).toBe(display.expectedCommand);
+      expect(pending?.decisions).toContain('allow_once');
+      client.respondToPermission(SESSION_ID, pending?.id, 'allow_once');
     } finally {
       await client.stop();
     }

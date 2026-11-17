@@ -38,14 +38,89 @@ jest.mock('expo-audio', () => ({
   })),
 }));
 
-import { Image } from 'react-native';
+import { Image, Linking } from 'react-native';
 import { useAudioPlayer } from 'expo-audio';
 import { fireEvent, render } from '@testing-library/react-native';
 import { DevinMarkdown, safeMarkdownSource } from '../../src/components/DevinMarkdown';
 import { InlineImage, isVideoUrl, isAudioUrl, isImageUrl } from '../../src/components/InlineMedia';
 import { ThemeProvider } from '../../src/theme/ThemeProvider';
 
+function fallbackLinkHandler(view: ReturnType<typeof render>): (url: string) => boolean {
+  return view.UNSAFE_root.find(
+    (node: { props: Record<string, unknown> }) => typeof node.props.onLinkPress === 'function',
+  ).props.onLinkPress;
+}
+
 describe('DevinMarkdown', () => {
+  it.each([
+    'http://example.invalid/fixture',
+    'https://example.invalid/fixture',
+    'mailto:fixture@example.invalid',
+    'HTTPS://example.invalid/fixture',
+  ])('opens allowlisted Markdown links in both handlers: %s', (url) => {
+    const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    try {
+      const view = render(
+        <ThemeProvider>
+          <DevinMarkdown>{`[Fixture](${url})`}</DevinMarkdown>
+        </ThemeProvider>,
+      );
+      fireEvent.press(view.getByText('Fixture'));
+      expect(open).toHaveBeenCalledTimes(1);
+      open.mockClear();
+      expect(fallbackLinkHandler(view)(url)).toBe(false);
+      expect(open).toHaveBeenCalledWith(url);
+    } finally {
+      open.mockRestore();
+    }
+  });
+
+  it.each([
+    'otterin://',
+    'tel:5550100',
+    'sms:5550100',
+    'shortcuts://run-shortcut?name=fixture',
+    'intent:fixture',
+    'file:///synthetic/private',
+    'data:text/html;base64,ZmFrZQ==',
+    '//example.invalid/fixture',
+    '/relative',
+  ])('blocks non-allowlisted Markdown links in both handlers: %s', (url) => {
+    const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    try {
+      const view = render(
+        <ThemeProvider>
+          <DevinMarkdown>{`[Fixture](${url})`}</DevinMarkdown>
+        </ThemeProvider>,
+      );
+      const link = view.queryByText('Fixture');
+      if (link) fireEvent.press(link);
+      expect(fallbackLinkHandler(view)(url)).toBe(false);
+      expect(fallbackLinkHandler(view)('')).toBe(false);
+      expect(open).not.toHaveBeenCalled();
+    } finally {
+      open.mockRestore();
+    }
+  });
+
+  it('handles rejected URL opens without throwing', async () => {
+    const open = jest
+      .spyOn(Linking, 'openURL')
+      .mockRejectedValue(new Error('Synthetic unavailable'));
+    try {
+      const view = render(
+        <ThemeProvider>
+          <DevinMarkdown>[Fixture](https://example.invalid/fixture)</DevinMarkdown>
+        </ThemeProvider>,
+      );
+      fireEvent.press(view.getByText('Fixture'));
+      await Promise.resolve();
+      expect(open).toHaveBeenCalledTimes(1);
+    } finally {
+      open.mockRestore();
+    }
+  });
+
   it('bounds exceptionally long remote markdown before parsing', () => {
     const source = '"'.repeat(160_000);
     const safe = safeMarkdownSource(source);

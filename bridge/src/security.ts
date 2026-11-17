@@ -127,7 +127,12 @@ function sessionIsAllowed(method: BridgeMethod, body: unknown, device: DeviceRec
   if (
     method !== 'session.load' &&
     method !== 'session.activity' &&
-    method !== 'session.prompt'
+    method !== 'session.prompt' &&
+    method !== 'session.permission' &&
+    method !== 'session.permission.respond' &&
+    method !== 'session.elicitation' &&
+    method !== 'session.elicitation.respond' &&
+    method !== 'session.cancel'
   ) {
     return true;
   }

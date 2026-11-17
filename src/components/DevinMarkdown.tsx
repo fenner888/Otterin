@@ -19,6 +19,12 @@ const MAX_MARKDOWN_CHARACTERS = 48_000;
 const MARKDOWN_PARSER = MarkdownIt({ typographer: false });
 const TRUNCATION_NOTICE = '\n\n_Response shortened on this screen for safety._';
 
+function openMarkdownLink(url: string): void {
+  if (/^(?:https?:|mailto:)/i.test(url)) {
+    Linking.openURL(url).catch(() => {});
+  }
+}
+
 export function safeMarkdownSource(source: string): string {
   return source.length <= MAX_MARKDOWN_CHARACTERS
     ? source
@@ -56,7 +62,7 @@ const MEDIA_RULES = {
       <Text
         key={node.key}
         style={mdStyles.link}
-        onPress={() => Linking.openURL(href).catch(() => {})}
+        onPress={() => openMarkdownLink(href)}
       >
         {linkChildren}
       </Text>
@@ -160,7 +166,7 @@ export function DevinMarkdown({ children }: { children: string }) {
       style={styles}
       rules={MEDIA_RULES}
       onLinkPress={(url) => {
-        Linking.openURL(url).catch(() => {});
+        openMarkdownLink(url);
         return false;
       }}
     >

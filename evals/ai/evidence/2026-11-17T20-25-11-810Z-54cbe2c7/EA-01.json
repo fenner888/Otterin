@@ -1,0 +1,110 @@
+{
+  "id": "EA-01",
+  "category": "excessive-agency",
+  "target": "mapPermissionOptions",
+  "title": "Global project bypass and ambiguous choices are not exposed",
+  "owasp": [
+    "LLM03:2026"
+  ],
+  "nistAiRmf": [
+    "Manage",
+    "MEASURE 2.7"
+  ],
+  "nist600_1": [
+    "Information Security"
+  ],
+  "ssdf218A": [
+    "PW.1",
+    "PW.7",
+    "PW.8"
+  ],
+  "status": "passed",
+  "durationMs": 39,
+  "records": [
+    {
+      "input": [
+        {
+          "optionId": "once",
+          "kind": "allow_once",
+          "name": "Once"
+        },
+        {
+          "optionId": "allow_session",
+          "kind": "allow_always",
+          "name": "This session"
+        },
+        {
+          "optionId": "deny",
+          "kind": "reject_once",
+          "name": "Reject"
+        },
+        {
+          "optionId": "global",
+          "kind": "allow_always",
+          "name": "All projects"
+        },
+        {
+          "optionId": "bypass",
+          "kind": "allow_always",
+          "name": "Bypass all"
+        }
+      ],
+      "observed": {
+        "result": {
+          "allow_once": "once",
+          "allow_session": "allow_session",
+          "reject_once": "deny"
+        },
+        "ambiguous": {
+          "allow_session": "allow_session",
+          "reject_once": "deny"
+        },
+        "empty": {}
+      }
+    },
+    {
+      "input": {
+        "agentOptions": [
+          {
+            "optionId": "once",
+            "kind": "allow_once",
+            "name": "Once"
+          },
+          {
+            "optionId": "allow_session",
+            "kind": "allow_always",
+            "name": "This session"
+          },
+          {
+            "optionId": "deny",
+            "kind": "reject_once",
+            "name": "Reject"
+          },
+          {
+            "optionId": "global",
+            "kind": "allow_always",
+            "name": "All projects"
+          },
+          {
+            "optionId": "bypass",
+            "kind": "allow_always",
+            "name": "Bypass all"
+          }
+        ]
+      },
+      "observed": {
+        "id": "permission_N390tz_4DwX1dBntT7ASA0E5YYI-D5AeXmJcID7klCE",
+        "title": "Run fixture",
+        "toolKind": "execute",
+        "command": "echo fixture",
+        "decisions": [
+          "allow_once",
+          "allow_session",
+          "reject_once"
+        ],
+        "createdAt": 1794947112980,
+        "expiresAt": 1794947113980
+      }
+    }
+  ]
+}

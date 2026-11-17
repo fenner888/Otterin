@@ -1,0 +1,42 @@
+{
+  "id": "EA-04-permission-answer",
+  "category": "excessive-agency",
+  "target": "authorizeRequest sessionIsAllowed",
+  "title": "Restricted device cannot permission-answer outside scope",
+  "owasp": [
+    "LLM03:2026"
+  ],
+  "nistAiRmf": [
+    "Manage",
+    "MEASURE 2.7"
+  ],
+  "nist600_1": [
+    "Information Security"
+  ],
+  "ssdf218A": [
+    "PW.1",
+    "PW.7",
+    "PW.8"
+  ],
+  "status": "passed",
+  "durationMs": 1,
+  "records": [
+    {
+      "input": {
+        "method": "session.permission.respond",
+        "body": {
+          "sessionId": "session-forbidden",
+          "permissionId": "permission_PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP",
+          "decision": "allow_once"
+        },
+        "allowedSessionIds": [
+          "session-allowed"
+        ]
+      },
+      "observed": {
+        "ok": false,
+        "category": "authorization"
+      }
+    }
+  ]
+}

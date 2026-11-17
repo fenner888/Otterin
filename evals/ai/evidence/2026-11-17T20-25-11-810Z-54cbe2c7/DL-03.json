@@ -1,0 +1,62 @@
+{
+  "id": "DL-03",
+  "category": "data-leakage",
+  "target": "assembleVoiceHints",
+  "title": "Secret-shaped credentials JWT AWS identifiers and email excluded from hints",
+  "owasp": [
+    "LLM02:2026",
+    "LLM08:2026"
+  ],
+  "nistAiRmf": [
+    "Map",
+    "MEASURE 2.10"
+  ],
+  "nist600_1": [
+    "Data Privacy"
+  ],
+  "ssdf218A": [
+    "PS.1",
+    "PW.8"
+  ],
+  "status": "passed",
+  "durationMs": 1,
+  "records": [
+    {
+      "input": {
+        "syntheticHints": [
+          "sk-fixture-not-real",
+          "ghp_SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+          "eyJhbGciOiJub25lIn0.eyJzdWIiOiJmaXh0dXJlIn0.signature",
+          "AKIAFFFFFFFFFFFFFFFF",
+          "fixture.person@example.invalid",
+          "api_key fixture"
+        ]
+      },
+      "observed": [
+        "Devin",
+        "Otterin",
+        "TypeScript",
+        "JavaScript",
+        "React Native",
+        "Expo Router",
+        "TanStack Query",
+        "Zod",
+        "OAuth",
+        "PostgreSQL",
+        "RLS",
+        "API",
+        "PR",
+        "GitHub Actions",
+        "TestFlight",
+        "EAS",
+        "monorepo",
+        "middleware",
+        "endpoint",
+        "refactor",
+        "kebab-case",
+        "Secure Store",
+        "synthetic-repo"
+      ]
+    }
+  ]
+}

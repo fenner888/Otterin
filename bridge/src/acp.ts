@@ -14,6 +14,7 @@ import {
   type SessionPermissionDecision,
 } from './schemas';
 import { utf8Tail } from './text';
+import { stripUnsafeText } from './safe-text';
 
 const ACP_PROTOCOL_VERSION = 1 as const;
 
@@ -495,20 +496,9 @@ export function mapPermissionOptions(
   return mapped;
 }
 
-function stripControlCharacters(value: string, replacement = ''): string {
-  return [...value]
-    .map((character) => {
-      const codePoint = character.codePointAt(0) ?? 0;
-      return codePoint < 32 || (codePoint >= 127 && codePoint <= 159)
-        ? replacement
-        : character;
-    })
-    .join('');
-}
-
 function cleanPermissionTitle(value: string | undefined): string | undefined {
   if (value === undefined) return undefined;
-  const cleaned = [...stripControlCharacters(value, ' ').replace(/\s+/g, ' ').trim()]
+  const cleaned = [...stripUnsafeText(value, ' ').replace(/\s+/g, ' ').trim()]
     .slice(0, 200)
     .join('');
   return cleaned || undefined;
@@ -516,7 +506,7 @@ function cleanPermissionTitle(value: string | undefined): string | undefined {
 
 function cleanPermissionCommand(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined;
-  const cleaned = [...stripControlCharacters(value).trim()]
+  const cleaned = [...stripUnsafeText(value).trim()]
     .slice(0, 2_000)
     .join('');
   return cleaned || undefined;

@@ -183,6 +183,30 @@ describe('Desktop Bridge security core', () => {
     });
   });
 
+  const scopedMethods: Array<[BridgeMethod, Record<string, unknown>]> = [
+    ['session.load', {}],
+    ['session.activity', {}],
+    ['session.prompt', { text: 'Synthetic request' }],
+    ['session.permission', {}],
+    ['session.permission.respond', { permissionId: `permission_${'P'.repeat(43)}`, decision: 'allow_once' }],
+    ['session.elicitation', {}],
+    ['session.elicitation.respond', { interactionId: `interaction_${'I'.repeat(43)}`, action: 'cancel' }],
+    ['session.cancel', {}],
+  ];
+
+  it.each(scopedMethods)('enforces session restrictions for %s', (method, extra) => {
+    const body = { sessionId: 'allowed-session', ...extra };
+    device.allowedSessionIds = ['allowed-session'];
+    expect(authorize(signedEnvelope(method, body)).ok).toBe(true);
+    expect(authorize(signedEnvelope(method, { ...body, sessionId: 'outside-scope' }))).toMatchObject({
+      ok: false, status: 404, body: { error: 'not_found' }, auditCategory: 'authorization',
+    });
+    device.allowedSessionIds = [];
+    expect(authorize(signedEnvelope(method, body))).toMatchObject({ ok: false, auditCategory: 'authorization' });
+    device.allowedSessionIds = undefined;
+    expect(authorize(signedEnvelope(method, body)).ok).toBe(true);
+  });
+
   it('fails closed when an unsigned envelope field is added', () => {
     const envelope = {
       ...signedEnvelope('bridge.health', {}),
