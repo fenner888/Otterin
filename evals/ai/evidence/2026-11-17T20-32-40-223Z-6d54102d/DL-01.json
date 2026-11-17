@@ -1,0 +1,46 @@
+{
+  "id": "DL-01",
+  "category": "data-leakage",
+  "target": "ACP child environment",
+  "title": "Non-allowlisted provider and cloud credentials do not reach child",
+  "owasp": [
+    "LLM02:2026",
+    "LLM08:2026"
+  ],
+  "nistAiRmf": [
+    "Map",
+    "MEASURE 2.10"
+  ],
+  "nist600_1": [
+    "Data Privacy"
+  ],
+  "ssdf218A": [
+    "PS.1",
+    "PW.8"
+  ],
+  "status": "passed",
+  "durationMs": 24,
+  "records": [
+    {
+      "input": {
+        "injectedNames": [
+          "OPENAI_API_KEY",
+          "AWS_SECRET_ACCESS_KEY",
+          "GITHUB_TOKEN"
+        ]
+      },
+      "observed": {
+        "childEnvironmentNames": [
+          "HOME",
+          "LANG",
+          "LOGNAME",
+          "NODE_ENV",
+          "NO_COLOR",
+          "PATH",
+          "SHELL",
+          "USER"
+        ]
+      }
+    }
+  ]
+}

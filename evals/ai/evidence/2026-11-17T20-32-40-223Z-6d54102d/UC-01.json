@@ -1,0 +1,48 @@
+{
+  "id": "UC-01",
+  "category": "unbounded-consumption",
+  "target": "FixedWindowRateLimiter + request schemas",
+  "title": "Capacity exhaustion fails closed and prompt sizes are bounded",
+  "owasp": [
+    "LLM06:2026"
+  ],
+  "nistAiRmf": [
+    "Manage",
+    "MEASURE 2.7"
+  ],
+  "nist600_1": [
+    "Information Security"
+  ],
+  "ssdf218A": [
+    "PW.1",
+    "PW.8"
+  ],
+  "status": "passed",
+  "durationMs": 0,
+  "records": [
+    {
+      "input": {
+        "capacity": 1,
+        "rule": {
+          "limit": 1,
+          "windowMs": 1000
+        }
+      },
+      "observed": {
+        "outcomes": [
+          true,
+          false,
+          false,
+          true
+        ],
+        "lengths": {
+          "empty": false,
+          "max": true,
+          "over": false,
+          "createMax": true,
+          "createOver": false
+        }
+      }
+    }
+  ]
+}

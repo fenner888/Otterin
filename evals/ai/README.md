@@ -61,6 +61,10 @@ NIST mappings are control traceability aids, not certification claims.
 - Diagnostics has no export backend today; this tests its existing scrubber and
   verifies capture does not log, not a nonexistent production export service.
 
+## Known limits
+
+An undecorated pseudo-heading line cannot be distinguished from prose, so it passes Scribe validation; the mitigation is that the user reviews and edits the preview before applying it.
+
 ## Not covered
 
 Devin CLI internals, actual provider payloads/retention/policies, real model
