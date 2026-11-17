@@ -1,0 +1,33 @@
+{
+  "id": "Q-02-reordered",
+  "category": "quality",
+  "target": "onDeviceScribeEngine structure heading validation",
+  "title": "Scribe rejects reordered model output",
+  "owasp": [
+    "LLM07:2026"
+  ],
+  "nistAiRmf": [
+    "Measure",
+    "MEASURE 2.5"
+  ],
+  "nist600_1": [
+    "Information Integrity"
+  ],
+  "ssdf218A": [
+    "PW.8",
+    "RV.1"
+  ],
+  "status": "passed",
+  "durationMs": 0,
+  "records": [
+    {
+      "input": {
+        "mockedFoundationModelOutput": "Scope / repo\nfixture\nGoal\nImplement\nAcceptance criteria\nTest\nConstraints / non-goals\nNone"
+      },
+      "observed": {
+        "kind": "template",
+        "text": "Goal\nImplement fixture\n\nScope / repo\nNot specified — confirm before starting.\n\nAcceptance criteria\n- Complete the requested outcome described under Goal.\n- Verify the result and report the validation performed.\n\nConstraints / non-goals\n- Preserve every constraint and non-goal stated in the dictated Goal.\n- Do not infer credentials, deadlines, repositories, or requirements that were not provided."
+      }
+    }
+  ]
+}
