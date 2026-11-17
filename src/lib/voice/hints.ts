@@ -32,10 +32,21 @@ export interface VoiceHintSources {
 const SECRET_SHAPED =
   /(?:bearer\s+|cog_|sk[-_]|api[-_]?key|access[-_]?token|refresh[-_]?token|password|secret|private[-_]?key)/i;
 const OPAQUE_TOKEN = /^[A-Za-z0-9_-]{24,}$/;
+const JWT = /\beyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*/;
+const AWS_ACCESS_KEY_ID = /\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/;
+const EMAIL_ADDRESS = /[^\s@]+@[^\s@]+\.[^\s@]+/;
 
 function safeHint(value: string): string | null {
   const hint = value.trim().replace(/\s+/g, ' ');
-  if (!hint || hint.length > 64 || SECRET_SHAPED.test(hint) || OPAQUE_TOKEN.test(hint)) {
+  if (
+    !hint ||
+    hint.length > 64 ||
+    SECRET_SHAPED.test(hint) ||
+    OPAQUE_TOKEN.test(hint) ||
+    JWT.test(hint) ||
+    AWS_ACCESS_KEY_ID.test(hint) ||
+    EMAIL_ADDRESS.test(hint)
+  ) {
     return null;
   }
   return hint;

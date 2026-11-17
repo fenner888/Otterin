@@ -1,0 +1,44 @@
+{
+  "id": "UO-01",
+  "category": "unsafe-output",
+  "target": "ACP approval display",
+  "title": "Bidi overrides and invisible characters removed from approval text",
+  "owasp": [
+    "LLM10:2026"
+  ],
+  "nistAiRmf": [
+    "Manage",
+    "MEASURE 2.7"
+  ],
+  "nist600_1": [
+    "Information Security",
+    "Information Integrity"
+  ],
+  "ssdf218A": [
+    "PW.7",
+    "PW.8"
+  ],
+  "status": "passed",
+  "durationMs": 35,
+  "records": [
+    {
+      "input": {
+        "title": "Run ‮txt.exe‬​",
+        "command": "echo ‮hidden‬‍"
+      },
+      "observed": {
+        "id": "permission_b6WakgfhcsEeH5kMk2tUVVrLMcmZtOpm0fdujyLjfwo",
+        "title": "Run txt.exe",
+        "toolKind": "execute",
+        "command": "echo hidden",
+        "decisions": [
+          "allow_once",
+          "allow_session",
+          "reject_once"
+        ],
+        "createdAt": 1794947562301,
+        "expiresAt": 1794947563301
+      }
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "id": "EA-04-permission-read",
+  "category": "excessive-agency",
+  "target": "authorizeRequest sessionIsAllowed",
+  "title": "Restricted device cannot permission-read outside scope",
+  "owasp": [
+    "LLM03:2026"
+  ],
+  "nistAiRmf": [
+    "Manage",
+    "MEASURE 2.7"
+  ],
+  "nist600_1": [
+    "Information Security"
+  ],
+  "ssdf218A": [
+    "PW.1",
+    "PW.7",
+    "PW.8"
+  ],
+  "status": "passed",
+  "durationMs": 1,
+  "records": [
+    {
+      "input": {
+        "method": "session.permission",
+        "body": {
+          "sessionId": "session-forbidden"
+        },
+        "allowedSessionIds": [
+          "session-allowed"
+        ]
+      },
+      "observed": {
+        "ok": false,
+        "category": "authorization"
+      }
+    }
+  ]
+}

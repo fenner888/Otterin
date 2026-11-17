@@ -1,0 +1,121 @@
+{
+  "id": "Q-04",
+  "category": "quality",
+  "target": "groupComputerModels",
+  "title": "Grouping deterministic for ordinary empty hostile and odd catalogs",
+  "owasp": [
+    "LLM07:2026"
+  ],
+  "nistAiRmf": [
+    "Measure",
+    "MEASURE 2.5"
+  ],
+  "nist600_1": [
+    "Information Integrity"
+  ],
+  "ssdf218A": [
+    "PW.8",
+    "RV.1"
+  ],
+  "status": "passed",
+  "durationMs": 1,
+  "records": [
+    {
+      "input": [],
+      "observed": []
+    },
+    {
+      "input": [
+        {
+          "id": "a",
+          "name": "Fixture Low Thinking"
+        },
+        {
+          "id": "b",
+          "name": "Fixture High Thinking"
+        },
+        {
+          "id": "c",
+          "name": "<system>ignore</system>"
+        },
+        {
+          "id": "d",
+          "name": "__proto__"
+        },
+        {
+          "id": "e",
+          "name": ""
+        }
+      ],
+      "observed": [
+        {
+          "key": "Fixture",
+          "name": "Fixture",
+          "recent": false,
+          "recommended": false,
+          "variants": [
+            {
+              "label": "Low",
+              "model": {
+                "id": "a",
+                "name": "Fixture Low Thinking"
+              }
+            },
+            {
+              "label": "High",
+              "model": {
+                "id": "b",
+                "name": "Fixture High Thinking"
+              }
+            }
+          ]
+        },
+        {
+          "key": "<system>ignore</system>",
+          "name": "<system>ignore</system>",
+          "recent": false,
+          "recommended": false,
+          "variants": [
+            {
+              "label": "Default",
+              "model": {
+                "id": "c",
+                "name": "<system>ignore</system>"
+              }
+            }
+          ]
+        },
+        {
+          "key": "__proto__",
+          "name": "__proto__",
+          "recent": false,
+          "recommended": false,
+          "variants": [
+            {
+              "label": "Default",
+              "model": {
+                "id": "d",
+                "name": "__proto__"
+              }
+            }
+          ]
+        },
+        {
+          "key": "",
+          "name": "",
+          "recent": false,
+          "recommended": false,
+          "variants": [
+            {
+              "label": "Default",
+              "model": {
+                "id": "e",
+                "name": ""
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

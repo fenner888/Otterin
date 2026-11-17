@@ -58,14 +58,34 @@ function contextText(context: ScribeContext): string {
 }
 
 function isValidStructuredWorkOrder(value: string): boolean {
-  const headings = ['Goal', 'Scope / repo', 'Acceptance criteria', 'Constraints / non-goals'];
-  let previousIndex = -1;
-  for (const heading of headings) {
-    const index = value.indexOf(heading);
-    if (index <= previousIndex) return false;
-    previousIndex = index;
+  const headings = ['goal', 'scope / repo', 'acceptance criteria', 'constraints / non-goals'];
+  let section = -1;
+  let hasBody = false;
+  for (const rawLine of value.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    const normalized = line
+      .replace(/^#+\s*/, '')
+      .replace(/:\s*$/, '')
+      .replace(/^\*\*(.*?)\*\*$/, '$1')
+      .replace(/:\s*$/, '')
+      .trim()
+      .toLowerCase();
+    const headingIndex = headings.indexOf(normalized);
+    if (headingIndex !== -1) {
+      if (headingIndex !== section + 1 || (section !== -1 && !hasBody)) return false;
+      section = headingIndex;
+      hasBody = false;
+    } else {
+      const extraHeading =
+        /^#/.test(line) ||
+        /^\*\*.+\*\*(?:\s*:)?$/.test(line) ||
+        (line.length <= 80 && /^[\p{L}][^:]*:$/u.test(line));
+      if (section === -1 || extraHeading) return false;
+      hasBody = true;
+    }
   }
-  return value.trim().length > headings.join('').length;
+  return section === headings.length - 1 && hasBody;
 }
 
 export const onDeviceScribeEngine: ScribeEngine = {

@@ -1,0 +1,137 @@
+{
+  "id": "UO-05",
+  "category": "unsafe-output",
+  "target": "safeMarkdownSource + MarkdownIt HTML",
+  "title": "Long markdown clipped and raw HTML not rendered as active elements",
+  "owasp": [
+    "LLM10:2026"
+  ],
+  "nistAiRmf": [
+    "Manage",
+    "MEASURE 2.7"
+  ],
+  "nist600_1": [
+    "Information Security",
+    "Information Integrity"
+  ],
+  "ssdf218A": [
+    "PW.7",
+    "PW.8"
+  ],
+  "status": "passed",
+  "durationMs": 4,
+  "records": [
+    {
+      "input": {
+        "length": 48017,
+        "html": "<script>fixture()</script><img src=\"https://fixture.invalid/html.png\">"
+      },
+      "observed": {
+        "clippedLength": 48049,
+        "tail": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n\n_Response shortened on this screen for safety._",
+        "imageCount": 0,
+        "rendered": {
+          "type": "View",
+          "props": {
+            "style": [
+              {
+                "flex": 1
+              },
+              {}
+            ]
+          },
+          "children": [
+            {
+              "type": "View",
+              "props": {
+                "style": {}
+              },
+              "children": [
+                {
+                  "type": "View",
+                  "props": {
+                    "style": {
+                      "marginTop": 10,
+                      "marginBottom": 10,
+                      "flexWrap": "wrap",
+                      "flexDirection": "row",
+                      "alignItems": "flex-start",
+                      "justifyContent": "flex-start",
+                      "width": "100%"
+                    }
+                  },
+                  "children": [
+                    {
+                      "type": "Text",
+                      "props": {
+                        "style": {}
+                      },
+                      "children": [
+                        {
+                          "type": "Text",
+                          "props": {
+                            "style": [
+                              {
+                                "color": "#FFFFFFE6",
+                                "fontSize": 14,
+                                "lineHeight": 20
+                              },
+                              {}
+                            ]
+                          },
+                          "children": [
+                            "<script>fixture()</script>"
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "View",
+                  "props": {
+                    "style": {
+                      "marginTop": 10,
+                      "marginBottom": 10,
+                      "flexWrap": "wrap",
+                      "flexDirection": "row",
+                      "alignItems": "flex-start",
+                      "justifyContent": "flex-start",
+                      "width": "100%"
+                    }
+                  },
+                  "children": [
+                    {
+                      "type": "Text",
+                      "props": {
+                        "style": {}
+                      },
+                      "children": [
+                        {
+                          "type": "Text",
+                          "props": {
+                            "style": [
+                              {
+                                "color": "#FFFFFFE6",
+                                "fontSize": 14,
+                                "lineHeight": 20
+                              },
+                              {}
+                            ]
+                          },
+                          "children": [
+                            "<img src=\"https://fixture.invalid/html.png\">"
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
