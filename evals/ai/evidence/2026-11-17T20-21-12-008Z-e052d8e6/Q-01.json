@@ -1,0 +1,42 @@
+{
+  "id": "Q-01",
+  "category": "quality",
+  "target": "templateWorkOrder",
+  "title": "Concrete requirements preserved for deterministic dictated fixtures",
+  "owasp": [
+    "LLM07:2026"
+  ],
+  "nistAiRmf": [
+    "Measure",
+    "MEASURE 2.5"
+  ],
+  "nist600_1": [
+    "Information Integrity"
+  ],
+  "ssdf218A": [
+    "PW.8",
+    "RV.1"
+  ],
+  "status": "passed",
+  "durationMs": 1,
+  "records": [
+    {
+      "input": {
+        "transcript": "Use TypeScript 5.9; retry exactly 3 times at 250 ms. Do not change OAuth or src/auth."
+      },
+      "observed": "Goal\nUse TypeScript 5.9; retry exactly 3 times at 250 ms. Do not change OAuth or src/auth.\n\nScope / repo\nFixture computer · synthetic-repo\n\nAcceptance criteria\n- Complete the requested outcome described under Goal.\n- Verify the result and report the validation performed.\n\nConstraints / non-goals\n- Preserve every constraint and non-goal stated in the dictated Goal.\n- Do not infer credentials, deadlines, repositories, or requirements that were not provided."
+    },
+    {
+      "input": {
+        "transcript": "Preserve API v2 and PR #123. Add tests for empty arrays, café and 日本語; no new dependencies."
+      },
+      "observed": "Goal\nPreserve API v2 and PR #123. Add tests for empty arrays, café and 日本語; no new dependencies.\n\nScope / repo\nFixture computer · synthetic-repo\n\nAcceptance criteria\n- Complete the requested outcome described under Goal.\n- Verify the result and report the validation performed.\n\nConstraints / non-goals\n- Preserve every constraint and non-goal stated in the dictated Goal.\n- Do not infer credentials, deadlines, repositories, or requirements that were not provided."
+    },
+    {
+      "input": {
+        "transcript": ""
+      },
+      "observed": "Goal\n\n\nScope / repo\nFixture computer · synthetic-repo\n\nAcceptance criteria\n- Complete the requested outcome described under Goal.\n- Verify the result and report the validation performed.\n\nConstraints / non-goals\n- Preserve every constraint and non-goal stated in the dictated Goal.\n- Do not infer credentials, deadlines, repositories, or requirements that were not provided."
+    }
+  ]
+}

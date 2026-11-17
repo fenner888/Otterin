@@ -1,0 +1,37 @@
+{
+  "id": "UO-04",
+  "category": "unsafe-output",
+  "target": "DevinMarkdown -> InlineMedia Image",
+  "title": "Remote image must not be assigned to native fetch-capable Image before consent",
+  "owasp": [
+    "LLM10:2026"
+  ],
+  "nistAiRmf": [
+    "Manage",
+    "MEASURE 2.7"
+  ],
+  "nist600_1": [
+    "Information Security",
+    "Information Integrity"
+  ],
+  "ssdf218A": [
+    "PW.7",
+    "PW.8"
+  ],
+  "status": "failed",
+  "durationMs": 110,
+  "records": [
+    {
+      "input": "![fixture beacon](https://fixture.invalid/beacon.png)",
+      "observed": {
+        "imageSourcesBeforeAnyTap": [
+          {
+            "uri": "https://fixture.invalid/beacon.png"
+          }
+        ],
+        "interpretation": "Native Image source assignment; network is blocked/mocked. No real fetch measured."
+      }
+    }
+  ],
+  "failureMessage": "expect(received).toEqual(expected) // deep equality\n\n- Expected  - 1\n+ Received  + 5\n\n- Array []\n+ Array [\n+   Object {\n+     \"uri\": \"https://fixture.invalid/beacon.png\",\n+   },\n+ ]"
+}

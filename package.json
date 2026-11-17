@@ -5,6 +5,7 @@
   "private": true,
   "license": "MIT",
   "scripts": {
+    "eval:ai": "jest --config evals/ai/jest.config.js --runInBand",
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
