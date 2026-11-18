@@ -1,0 +1,94 @@
+{
+  "id": "UO-02-4",
+  "category": "unsafe-output",
+  "target": "DevinMarkdown parser + Linking",
+  "title": "Unsafe protocol data cannot open",
+  "owasp": [
+    "LLM10:2026"
+  ],
+  "nistAiRmf": [
+    "Manage",
+    "MEASURE 2.7"
+  ],
+  "nist600_1": [
+    "Information Security",
+    "Information Integrity"
+  ],
+  "ssdf218A": [
+    "PW.7",
+    "PW.8"
+  ],
+  "status": "passed",
+  "durationMs": 1,
+  "records": [
+    {
+      "input": {
+        "markdown": "[fixture link](data:text/html;base64,PHNjcmlwdD4=)"
+      },
+      "observed": {
+        "openURLCalls": [],
+        "rendered": {
+          "type": "View",
+          "props": {
+            "style": [
+              {
+                "flex": 1
+              },
+              {}
+            ]
+          },
+          "children": [
+            {
+              "type": "View",
+              "props": {
+                "style": {}
+              },
+              "children": [
+                {
+                  "type": "View",
+                  "props": {
+                    "style": {
+                      "marginTop": 10,
+                      "marginBottom": 10,
+                      "flexWrap": "wrap",
+                      "flexDirection": "row",
+                      "alignItems": "flex-start",
+                      "justifyContent": "flex-start",
+                      "width": "100%"
+                    }
+                  },
+                  "children": [
+                    {
+                      "type": "Text",
+                      "props": {
+                        "style": {}
+                      },
+                      "children": [
+                        {
+                          "type": "Text",
+                          "props": {
+                            "style": [
+                              {
+                                "color": "#FFFFFFE6",
+                                "fontSize": 14,
+                                "lineHeight": 20
+                              },
+                              {}
+                            ]
+                          },
+                          "children": [
+                            "[fixture link](data:text/html;base64,PHNjcmlwdD4=)"
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
