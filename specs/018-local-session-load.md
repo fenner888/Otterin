@@ -16,7 +16,7 @@ An invalid, excessive, or differently-associated replay notification is discarde
 
 The mobile request continues to use the opaque `local_` session handle. The server resolves that handle in its bounded, expiring in-memory registry and returns 404 when it is missing, expired, outside a device session scope, or unauthorized.
 
-`session.load` requires `session:content:read` on the server for every request. The default pairing grant remains metadata-only, so discovery does not silently become content access. The mobile client repeats the grant check as defense in depth but never replaces the authoritative server check.
+`session.load` requires `session:content:read` on the server for every request. The default pairing grant remains metadata-only, so discovery does not silently become content access. Connector is authoritative for current content grants, including grants changed after pairing. The mobile client validates returned content but does not reject requests or session titles based on the pairing-time permission snapshot.
 
 Only user and agent text message chunks may cross the bridge. The adapter drops:
 
@@ -44,12 +44,7 @@ Malformed JSON-RPC, invalid notification/session association, oversized messages
 
 This spec originally made the local detail route read-only. Spec 023 supersedes that single point by adding a text-only composer when the requesting device currently has `session:prompt:send`. Permission response, tool control, file access, attachments, share/deep links, and background persistence remain unavailable. Local text is selectable but is deliberately not passed through the app's media-aware Markdown renderer, so replayed URLs cannot trigger an automatic external image, audio, or video request. The query remains in memory and is removed when normal TanStack garbage collection runs or all connection data is wiped.
 
-A local discovery row becomes tappable only when both conditions are true:
-
-1. authenticated bridge health advertises `sessionLoad`; and
-2. the paired credential includes `session:content:read`.
-
-Until desktop permission management is implemented, the default metadata-only row remains non-interactive.
+A local discovery row becomes tappable when authenticated bridge health advertises `sessionLoad`, which requires current server-side content permission and ACP support. The default metadata-only row remains non-interactive until the owner grants content access in Connector.
 
 Synthetic coverage verifies capability negotiation, exact listed-`cwd` reuse, empty MCP scope, message minimization, wrong-session rejection, capability absence, notification/message/byte bounds, authorization concealment, opaque-handle resolution, concurrent-load rejection, generic adapter failures, signed mobile request interoperability, strict response sequencing, and conditional row interaction.
 
