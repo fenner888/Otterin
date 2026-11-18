@@ -1,0 +1,45 @@
+{
+  "id": "UO-01",
+  "category": "unsafe-output",
+  "target": "ACP approval display",
+  "title": "Bidi overrides and invisible characters removed from approval text",
+  "owasp": [
+    "LLM10:2026"
+  ],
+  "nistAiRmf": [
+    "Manage",
+    "MEASURE 2.7"
+  ],
+  "nist600_1": [
+    "Information Security",
+    "Information Integrity"
+  ],
+  "ssdf218A": [
+    "PW.7",
+    "PW.8"
+  ],
+  "status": "failed",
+  "durationMs": 38,
+  "records": [
+    {
+      "input": {
+        "title": "Run ‮txt.exe‬​",
+        "command": "echo ‮hidden‬‍"
+      },
+      "observed": {
+        "id": "permission_Hi1QQE8ukcqho9PPYzxkP5XqFqQKjkkhSdE-ciOvkaE",
+        "title": "Run ‮txt.exe‬​",
+        "toolKind": "execute",
+        "command": "echo ‮hidden‬‍",
+        "decisions": [
+          "allow_once",
+          "allow_session",
+          "reject_once"
+        ],
+        "createdAt": 1794946874096,
+        "expiresAt": 1794946875096
+      }
+    }
+  ],
+  "failureMessage": "expect(received).not.toMatch(expected)\n\nExpected pattern: not /[\\u200B-\\u200F\\u202A-\\u202E\\u2060-\\u206F]/\nReceived string:      \"Run ‮txt.exe‬​echo ‮hidden‬‍\""
+}

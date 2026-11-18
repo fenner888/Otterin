@@ -1,0 +1,38 @@
+{
+  "id": "UO-03-4",
+  "category": "unsafe-output",
+  "target": "DevinMarkdown custom link handler",
+  "title": "Custom scheme shortcuts requires allowlist or confirmation",
+  "owasp": [
+    "LLM10:2026"
+  ],
+  "nistAiRmf": [
+    "Manage",
+    "MEASURE 2.7"
+  ],
+  "nist600_1": [
+    "Information Security",
+    "Information Integrity"
+  ],
+  "ssdf218A": [
+    "PW.7",
+    "PW.8"
+  ],
+  "status": "failed",
+  "durationMs": 3,
+  "records": [
+    {
+      "input": {
+        "url": "shortcuts://run-shortcut?name=fixture"
+      },
+      "observed": {
+        "openURLCallsWithoutConfirmation": [
+          [
+            "shortcuts://run-shortcut?name=fixture"
+          ]
+        ]
+      }
+    }
+  ],
+  "failureMessage": "expect(jest.fn()).not.toHaveBeenCalled()\n\nExpected number of calls: 0\nReceived number of calls: 1\n\n1: \"shortcuts://run-shortcut?name=fixture\""
+}

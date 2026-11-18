@@ -11,14 +11,14 @@ jobs:
   windows-connector:
     runs-on: windows-2025
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
 
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
         with:
           dotnet-version: '10.0.401'
 
@@ -51,7 +51,7 @@ jobs:
         run: npm run connector:verify:windows:store
 
       - name: Upload non-release verification artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: devinx-connector-windows-x64-UNSIGNED-NOT-FOR-RELEASE
           path: |
@@ -63,7 +63,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload Microsoft Store submission package
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: devinx-connector-windows-x64-MICROSOFT-STORE-UPLOAD
           path: |

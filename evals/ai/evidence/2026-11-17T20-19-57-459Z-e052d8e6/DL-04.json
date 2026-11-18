@@ -1,0 +1,50 @@
+{
+  "id": "DL-04",
+  "category": "data-leakage",
+  "target": "diagnostics scrub + no-op capture",
+  "title": "Diagnostics do not export tokens keys or prompt contents",
+  "owasp": [
+    "LLM02:2026",
+    "LLM08:2026"
+  ],
+  "nistAiRmf": [
+    "Map",
+    "MEASURE 2.10"
+  ],
+  "nist600_1": [
+    "Data Privacy"
+  ],
+  "ssdf218A": [
+    "PS.1",
+    "PW.8"
+  ],
+  "status": "passed",
+  "durationMs": 0,
+  "records": [
+    {
+      "input": {
+        "apiKey": "fixture-key",
+        "nested": {
+          "token": "fixture-token",
+          "prompt": "private synthetic request",
+          "text": "synthetic reply"
+        },
+        "error": "Bearer fixture_bearer"
+      },
+      "observed": {
+        "scrubbed": {
+          "apiKey": "[redacted]",
+          "nested": {
+            "token": "[redacted]",
+            "prompt": "[content_redacted]",
+            "text": "[content_redacted]"
+          },
+          "error": "[bearer_redacted]"
+        },
+        "logCalls": [],
+        "warnCalls": [],
+        "errorCalls": []
+      }
+    }
+  ]
+}
