@@ -36,7 +36,11 @@ const BRIDGE_PROTOCOL_VERSION = 2 as const;
 const REQUEST_LIFETIME_MS = 15_000;
 const BRIDGE_FEATURES_CACHE_TTL_MS = 60_000;
 // The Mac can grant these after pairing, so the Connector remains authoritative.
-const MAC_ENFORCED_GRANTS = new Set(['session:prompt:send', 'session:create']);
+const MAC_ENFORCED_GRANTS = new Set([
+  'session:content:read',
+  'session:prompt:send',
+  'session:create',
+]);
 
 const opaqueIdSchema = z
   .string()
@@ -949,15 +953,6 @@ async function requestSessionList(
   if (!result.success) {
     throw new ComputerBridgeError(
       'The paired local device returned an invalid session list.',
-      'invalid_response',
-    );
-  }
-  if (
-    !response.credential.permissions.includes('session:content:read') &&
-    result.data.sessions.some((session) => session.title !== undefined)
-  ) {
-    throw new ComputerBridgeError(
-      'The paired local device returned session content outside the device grant.',
       'invalid_response',
     );
   }

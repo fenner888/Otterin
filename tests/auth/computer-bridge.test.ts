@@ -167,7 +167,7 @@ describe('authenticated mobile Computer Bridge client', () => {
     });
   });
 
-  it('interoperates with the real server authorization and canonicalization path', async () => {
+  it('refreshes sessions when content access is granted after pairing', async () => {
     const keys = generateKeyPairSync('ed25519');
     const publicKeySpki = keys.publicKey
       .export({ format: 'der', type: 'spki' })
@@ -179,6 +179,12 @@ describe('authenticated mobile Computer Bridge client', () => {
       nodeSign(null, Buffer.from(message, 'utf8'), keys.privateKey).toString('base64url'),
     );
     const sessionHandles = new SessionHandleRegistry(BRIDGE_ID, Buffer.alloc(32, 7));
+    let allowContent = false;
+    let requestNumber = 0;
+    mockCreateRequestIdentity.mockImplementation(async () => ({
+      requestId: `d9428888-122b-11e1-b85c-${String(++requestNumber).padStart(12, '0')}`,
+      nonce: String(requestNumber).padStart(32, 'N'),
+    }));
     const service = new BridgeService({
       bridgeId: BRIDGE_ID,
       platform: 'windows',
@@ -192,7 +198,11 @@ describe('authenticated mobile Computer Bridge client', () => {
                 publicKeySpki,
                 status: 'active',
                 pairedAt: NOW - 60_000,
-                permissions: ['bridge:health', 'session:metadata:read'],
+                permissions: [
+                  'bridge:health',
+                  'session:metadata:read',
+                  ...(allowContent ? (['session:content:read'] as const) : []),
+                ],
               }
             : undefined,
       },
@@ -202,11 +212,16 @@ describe('authenticated mobile Computer Bridge client', () => {
       workspaceHandles: new WorkspaceHandleRegistry(BRIDGE_ID, Buffer.alloc(32, 8)),
       sessions: {
         isSessionListSupported: () => true,
-        listSessions: async () => ({ sessions: [] }),
-        isSessionLoadSupported: () => false,
-        loadSession: async () => {
-          throw new Error('Session loading is disabled');
-        },
+        listSessions: async () => ({
+          sessions: [{ sessionId: 'acp-session', cwd: '/repo', title: 'Review changes' }],
+        }),
+        isSessionLoadSupported: () => true,
+        loadSession: async () => ({
+          sessionId: 'acp-session',
+          cwd: '/repo',
+          messages: [],
+          truncated: false,
+        }),
         isSessionPromptSupported: () => true,
         promptSession: async () => {},
       },
@@ -220,8 +235,31 @@ describe('authenticated mobile Computer Bridge client', () => {
 
     await expect(getComputerBridgeHealth(BRIDGE_ID)).resolves.toMatchObject({
       status: 'ready',
-      capabilities: { sessionList: true },
+      capabilities: { sessionList: true, sessionLoad: false },
     });
+    const redacted = await listComputerSessions(BRIDGE_ID);
+    expect(redacted.sessions).toHaveLength(1);
+    const session = redacted.sessions[0];
+    if (!session) throw new Error('Expected the listed session');
+    expect(session.title).toBeUndefined();
+
+    allowContent = true;
+    await expect(getComputerBridgeHealth(BRIDGE_ID)).resolves.toMatchObject({
+      capabilities: { sessionLoad: true },
+    });
+    await expect(listComputerSessions(BRIDGE_ID)).resolves.toMatchObject({
+      sessions: [{ id: session.id, title: 'Review changes' }],
+    });
+    await expect(loadComputerSession(BRIDGE_ID, session.id)).resolves.toMatchObject({
+      messages: [],
+    });
+
+    allowContent = false;
+    await expect(listComputerSessions(BRIDGE_ID)).resolves.toEqual(redacted);
+    await expect(loadComputerSession(BRIDGE_ID, session.id)).rejects.toMatchObject({
+      code: 'authorization_failed',
+    });
+    expect(mockStorePairedComputers).not.toHaveBeenCalled();
     sessionHandles.destroy();
   });
 
@@ -524,12 +562,13 @@ describe('authenticated mobile Computer Bridge client', () => {
     expect(mockDeleteDeviceIdentity).toHaveBeenCalledWith(KEY_ID);
   });
 
-  it('fails local history closed for absent grants, handle mismatch, or invalid sequence', async () => {
+  it('fails local history closed for server-denied grants, handle mismatch, or invalid sequence', async () => {
     const sessionId = `local_${'L'.repeat(43)}`;
+    mockPostPinnedBridgeJson.mockResolvedValueOnce({ status: 404, body: { error: 'not_found' } });
     await expect(loadComputerSession(BRIDGE_ID, sessionId)).rejects.toMatchObject({
-      code: 'permission_denied',
+      code: 'authorization_failed',
     });
-    expect(mockSign).not.toHaveBeenCalled();
+    expect(mockSign).toHaveBeenCalledTimes(1);
 
     mockLoadPairedComputers.mockResolvedValue([
       { ...COMPUTER, permissions: [...COMPUTER.permissions, 'session:content:read'] },
@@ -675,7 +714,13 @@ describe('authenticated mobile Computer Bridge client', () => {
             origin: 'computer',
             workspaceName: 'Repo',
             hasTitle: true,
-            title: 'Content outside the metadata grant',
+            title: 'Valid title',
+          },
+          {
+            id: `local_${'M'.repeat(43)}`,
+            origin: 'computer',
+            workspaceName: 'Repo',
+            hasTitle: false,
           },
         ],
       },
