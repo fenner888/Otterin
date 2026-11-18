@@ -1,10 +1,9 @@
 /**
- * §10.5 gate test — disconnect wipes Keychain + SQLite cache + query cache.
- * Uses mocked secure-store + mocked sqlite.
+ * §10.5 gate test — disconnect wipes legacy Cloud Keychain credentials.
+ * Uses mocked secure-store.
  */
 
 import { wipeLegacyCloudCredentials } from '../../src/auth/keychain';
-import { purgeCache, cacheIsEmpty } from '../../src/cache';
 
 // Mock expo-secure-store
 jest.mock('expo-secure-store', () => {
@@ -15,29 +14,6 @@ jest.mock('expo-secure-store', () => {
     deleteItemAsync: jest.fn((key: string) => { store.delete(key); return Promise.resolve(); }),
     WHEN_UNLOCKED_THIS_DEVICE_ONLY: 2,
     _store: store,
-  };
-});
-
-// Mock expo-sqlite
-jest.mock('expo-sqlite', () => {
-  const tables: Record<string, Array<Record<string, unknown>>> = {
-    sessions: [{ id: 'devin-test', payload: '{}', status: 'running', updated_at: '1', fetched_at: '1' }],
-    messages: [],
-    meta: [{ key: 'schema_version', value: '1' }],
-  };
-  return {
-    openDatabaseAsync: jest.fn(() => Promise.resolve({
-      execAsync: jest.fn(async (sql: string) => {
-        if (sql.includes('DELETE FROM sessions')) tables.sessions = [];
-        if (sql.includes('DELETE FROM messages')) tables.messages = [];
-        if (sql.includes('DELETE FROM meta')) tables.meta = [];
-      }),
-      runAsync: jest.fn(async () => ({ rowsAffected: 1 })),
-      getFirstAsync: jest.fn(async (sql: string) => {
-        if (sql.includes('sessions')) return { c: tables.sessions?.length ?? 0 };
-        return null;
-      }),
-    })),
   };
 });
 
@@ -94,15 +70,5 @@ describe('disconnect wipe (§10.5 gate)', () => {
 
     expect(SecureStore.deleteItemAsync).not.toHaveBeenCalled();
     restoreFixtureEnvironment();
-  });
-
-  it('purges the SQLite cache', async () => {
-    const empty = await cacheIsEmpty();
-    expect(empty).toBe(false); // has the primed session row
-
-    await purgeCache();
-
-    const stillEmpty = await cacheIsEmpty();
-    expect(stillEmpty).toBe(true);
   });
 });

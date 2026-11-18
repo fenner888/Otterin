@@ -7,7 +7,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { useConnections } from '@auth/ConnectionContext';
 import { computerTransportLabel } from '@auth/pairedComputers';
-import { purgeCache } from '@cache/index';
 import { branding } from '@lib/branding';
 import { confirmAction } from '@lib/confirm';
 import { purgeUserScopedStorage } from '@lib/localUserData';
@@ -54,7 +53,7 @@ export default function SettingsScreen() {
         setWipeError(null);
         try {
           await disconnectAll();
-          await Promise.all([purgeCache(), purgeUserScopedStorage()]);
+          await purgeUserScopedStorage();
           queryClient.clear();
           router.replace('/(onboarding)');
         } catch {

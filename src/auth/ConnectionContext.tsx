@@ -8,6 +8,8 @@ import {
   type ReactNode,
 } from 'react';
 
+import { deleteLegacyCloudCache } from '@lib/legacyCloudCache';
+
 import { wipeLegacyCloudCredentials } from './keychain';
 import {
   clearPairedComputers,
@@ -48,17 +50,20 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     wipeLegacyCloudCredentials().catch(() => {});
+    deleteLegacyCloudCache().catch(() => {});
     refreshComputers().catch(() => {});
   }, [refreshComputers]);
 
   const disconnectAll = useCallback(async () => {
-    const [computerResult, legacyCredentialsResult] = await Promise.allSettled([
+    const [computerResult, legacyCredentialsResult, legacyCacheResult] = await Promise.allSettled([
       clearPairedComputers(),
       wipeLegacyCloudCredentials(),
+      deleteLegacyCloudCache(),
     ]);
     if (computerResult.status === 'fulfilled') setComputers([]);
     if (
       legacyCredentialsResult.status === 'fulfilled' &&
+      legacyCacheResult.status === 'fulfilled' &&
       computerResult.status === 'fulfilled'
     ) {
       setConnectionError(null);
