@@ -33,7 +33,6 @@ jest.mock('@auth/ConnectionContext', () => ({
 jest.mock('@tanstack/react-query', () => ({
   useQueryClient: () => ({ clear: jest.fn() }),
 }));
-jest.mock('@cache/index', () => ({ purgeCache: jest.fn(async () => undefined) }));
 jest.mock('@lib/localUserData', () => ({
   purgeUserScopedStorage: jest.fn(async () => undefined),
 }));

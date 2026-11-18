@@ -29,8 +29,8 @@
 > [!IMPORTANT]
 > Otterin is an independent, unofficial client for Devin. It is not affiliated with, endorsed by,
 > or a product of Cognition AI. Devin, Cognition, and third-party model names and marks belong to
-> their respective owners. Cloud features require the user's own Devin account and appropriate API
-> access.
+> their respective owners. Otterin requires the user's own Devin for Terminal installation and
+> account on a computer they control.
 
 ## Release status
 
@@ -41,77 +41,52 @@
 | **Otterin Connector for macOS**  | `0.1.18`            | [Signed and notarized Apple-silicon release](https://github.com/fenner888/Otterin/releases/latest) |
 | **Otterin Connector for Windows** | `0.1.9.0` in certification; `0.1.10.0` next update | Windows 11 x64 compatibility update submitted to Microsoft; 0.1.10.0 shows Otterin Connector as the installed app name |
 
-TestFlight access does not include a Devin account or shared Devin data. Each tester connects their
-own Devin organization, pairs a local device they control, or uses both.
+TestFlight access does not include a Devin account or shared Devin data. Each tester pairs a computer
+they control that runs their own Devin for Terminal.
 
 ## What Otterin is
 
-Otterin is mobile mission control for supported Devin Cloud and Devin for Terminal workflows. It is
+Otterin is a Local-only companion for Devin for Terminal sessions running on your own computer. It is
 built for the moments when you are away from your desk but still need to start work, check progress,
-answer a question, or review a result.
+answer a question, or review a result. Cloud sessions belong in Devin's official app.
 
-- **Start work remotely.** Create supported Cloud or Local sessions with the context exposed by
-  the selected destination.
-- **See sessions in one place.** Cloud and Local sessions remain clearly labeled so their
-  trust and data boundaries never blur.
-- **Keep work moving.** Read bounded history, send steering messages, and respond when a session
-  needs input.
-- **Review demos in place.** Devin-produced Cloud screenshots and videos appear in the session when
-  the documented attachment API returns them; videos load only after you tap play.
-- **Use the real available catalog.** Repositories, workspaces, playbooks, Knowledge, attachments,
-  modes, and models come from documented Cloud APIs or the live local ACP catalog—not hardcoded
-  guesses.
+- **Start work remotely.** Create Local sessions from the Home composer with the paired computer,
+  workspace, and model you choose.
+- **See recent sessions.** Search and browse recent Local sessions on each paired computer.
+- **Keep work moving.** Read bounded history, follow live updates, send steering messages, and
+  respond when a session needs input.
+- **Use the real available catalog.** Workspaces and models come from the live local ACP
+  catalog—not hardcoded guesses.
 - **Speak detailed prompts.** On supported iOS 26 devices, dictation is transcribed on device. The
   optional **Organize prompt** preview uses Apple Foundation Models when available and falls back to
   deterministic on-device formatting.
-- **Inspect supported product surfaces.** Depending on account permissions, Otterin can expose
-  Automations, Usage, Review, repository Wiki content, read-only integration/MCP status, and genuine
-  `code_scan` Security Work.
 - **Keep a helpful companion nearby.** The Otterin companion reflects session state without becoming
   an operating-system overlay or covering primary controls.
 
-## Choose where Devin runs
+## How Otterin connects
 
-| Mode              | Connects to                                      | Required setup                                                        |
-| ----------------- | ------------------------------------------------ | --------------------------------------------------------------------- |
-| **Devin Cloud**   | Documented Devin Cloud APIs over TLS             | Otterin, a Devin organization ID, and a scoped service-user credential |
-| **Local**         | Supported Devin sessions on a device you control | Otterin, Tailscale, supported local Devin ACP, and Otterin Connector   |
-| **Cloud + Local** | Both sources in one app with explicit origins    | Both setups above                                                     |
-
-Cloud authentication does not pair a local device. Local pairing does not copy Devin credentials to
-the iPhone. Each connection has its own authentication, permissions, storage, and revocation path.
+Otterin talks only to Otterin Connector on a computer you pair. It needs Otterin, Tailscale,
+supported local Devin ACP, and Otterin Connector. Pairing does not copy Devin credentials to the
+iPhone; each paired iPhone has its own key, permissions, and revocation path.
 
 ```mermaid
 flowchart LR
-    I["Otterin on iPhone"] -->|"Documented API over TLS"| C["Devin Cloud"]
-    I -->|"Tailscale + pinned TLS + signed requests"| X["Otterin Connector"]
+    I["Otterin on iPhone"] -->|"Tailscale + pinned TLS + signed requests"| X["Otterin Connector"]
     X -->|"Bounded ACP operations"| T["Devin for Terminal"]
 ```
 
-Otterin operates no relay for normal Cloud or Local session traffic.
+Otterin operates no relay for Local session traffic.
 
 ## Install on iPhone
 
 1. Install Apple's [TestFlight](https://apps.apple.com/app/testflight/id899247664) app.
 2. Open the [Otterin Early Access link](https://testflight.apple.com/join/KBD25apN).
 3. Install Build `0.1.0 (79)` and complete the in-app onboarding.
-4. Choose **Devin Cloud**, **Local**, or **Cloud + Local**.
+4. Pair your computer with Otterin Connector as described below.
 
-### Cloud setup
+## Install Otterin Connector
 
-Cloud mode requires an existing Devin organization and a least-privilege service user created by
-that organization. Follow Devin's official
-[service-user authentication guide](https://docs.devin.ai/api-reference/authentication), then enter
-the generated service-user key and organization ID only inside Otterin onboarding. The credential is
-validated directly against Devin and stored with device-only protection in iOS Keychain.
-
-Do not paste Devin credentials into issues, screenshots, setup prompts, shell history, or chat
-messages. TestFlight does not provide a shared Devin credential, and no tester receives access to
-another user's sessions through the beta link.
-
-## Install Otterin Connector for Local mode
-
-Connector is optional. Cloud-only users do not install it.
+Connector is required: it is the only service Otterin connects to.
 
 ### Supported public release
 
@@ -164,7 +139,7 @@ never sideload the unsigned CI artifacts.
 
 ## Why Tailscale is not enough
 
-Tailscale and Connector provide two separate required layers for Local mode:
+Tailscale and Connector provide two separate required layers:
 
 1. **Tailscale provides private network reachability** between the iPhone and Mac.
 2. **Connector provides the trusted local service** that talks to Devin for Terminal, authenticates
@@ -193,7 +168,8 @@ tunnel, analytics SDK, or silent updater.
 
 ## Security and privacy
 
-- Cloud service-user credentials stay in iOS Keychain with device-only protection.
+- Otterin stores no Devin sign-in credentials. Paired-device keys stay in iOS Keychain with
+  device-only protection.
 - Local Devin credentials remain on the paired device and are never copied to the iPhone.
 - Connector identity, TLS material, and paired-device grants stay in platform-protected storage.
 - Every protected Connector request is authenticated, replay checked, rate limited, Zod validated,
@@ -215,15 +191,11 @@ never through a public issue containing sensitive details.
 
 ## Honest capability boundaries
 
-Otterin exposes only behavior supported by the authenticated account and a documented Cloud API,
-official Devin MCP tool, or approved local ACP capability.
+Otterin exposes only behavior supported by an approved local ACP capability and the paired
+iPhone's Connector grants.
 
-- Cloud availability depends on organization tier and service-user permissions. Missing access is
-  shown as unavailable; it is not bypassed with browser cookies, private endpoints, or human-account
-  impersonation.
-- **Security Work** opens genuine top-level sessions whose canonical origin is `code_scan`. It is
-  not Cognition's enterprise findings dashboard and does not invent a scan-creation endpoint.
-- Wiki and integration/MCP surfaces are read-only where the official Devin MCP exposes them.
+- Devin Cloud sessions, organizations, and service users are out of scope; use Devin's official app
+  or Devin Web for them.
 - Local workspaces and models come from the live local catalog. Exact identifiers are preserved
   when dispatching work.
 - Local tool approvals, arbitrary file access, arbitrary shell commands, public tunnels, and shared
@@ -235,8 +207,8 @@ official Devin MCP tool, or approved local ACP capability.
   download activates only after its signature and physical compatibility gates pass; Linux and
   Intel Mac packages remain unavailable.
 
-The maintained parity inventory is in
-[specs/033-cloud-local-settings-parity.md](specs/033-cloud-local-settings-parity.md).
+The Local-only product decision is in
+[specs/041-local-only-otterin.md](specs/041-local-only-otterin.md).
 
 ## Development
 
@@ -286,10 +258,9 @@ guessed package name.
 ```text
 src/app/                 Expo Router screens
 src/components/          UI and interaction components
-src/api/devin/           Cloud API and MCP clients, Zod schemas, endpoint contracts
-src/auth/                Keychain credentials and connection providers
+src/api/bridge/          Connector client queries and presentation helpers
+src/auth/                Keychain, pairing, signed Connector transport, and connection state
 src/lib/                 Product rules, voice, polling, diagnostics, and utilities
-src/cache/               Protected Cloud read cache
 modules/                 Reviewed native iOS modules
 bridge/                  Authenticated local Connector service
 connector/macos/         Native macOS application
