@@ -51,7 +51,7 @@ jobs:
         run: npm run connector:verify:windows:store
 
       - name: Upload non-release verification artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: devinx-connector-windows-x64-UNSIGNED-NOT-FOR-RELEASE
           path: |
@@ -63,7 +63,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload Microsoft Store submission package
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: devinx-connector-windows-x64-MICROSOFT-STORE-UPLOAD
           path: |

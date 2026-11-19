@@ -80,7 +80,7 @@ jobs:
         run: npm run connector:verify:windows
 
       - name: Upload signed verification candidate
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: devinx-connector-windows-x64-SIGNED-VERIFICATION-CANDIDATE
           path: |
